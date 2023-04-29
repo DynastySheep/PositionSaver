@@ -35,6 +35,11 @@ auto_updater.run_auto_update(auto_update_config)
 
 -- Auto Updater Ends Here!
 
+--Temporary
+local roseObj = util.joaat("prop_single_rose")
+local roses = {}
+--TTT
+
 util.require_natives(1627063482)
 local blipFile = require("pos_data")
 local scriptPath = filesystem.stand_dir()
@@ -164,17 +169,17 @@ function CreateBlip(x, y, z, name)
 
     for i, data in ipairs(blipData) do
         if data.posName == name then
-            existingBlip = blipSprite[i]
             data.x = x
             data.y = y
-            data.z = z
+            data.z = z    
+            existingBlip = blipSprite[i]
             existingBlip.x = x
             existingBlip.y = y
-            existingBlip.z = z
+            existingBlip.z = z   
             Rewrite()
             break
         end
-    end
+    end    
 
     if existingBlip == nil then
         existingBlip = {} -- Initialize as empty table
@@ -266,3 +271,42 @@ function CreateBlip(x, y, z, name)
 
     Rewrite()
 end
+
+-- Temporary
+function spawnRoses()
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerCoords = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local rose = OBJECT.CREATE_OBJECT(roseObj, playerCoords.x, playerCoords.y, playerCoords.z, true, true, false)
+    table.insert(roses, rose)
+end
+
+-- Remove all spawned roses
+function removeRoses()
+    for i=1, #roses do
+        local ent = roses[i]
+        if ENTITY.DOES_ENTITY_EXIST(ent) then
+            if not NETWORK.NETWORK_HAS_CONTROL_OF_ENTITY(ent) then
+                NETWORK.REQUEST_CONTROL_OF_ENTITY(ent)
+                while not NETWORK.NETWORK_HAS_CONTROL_OF_ENTITY(ent) do 
+                    util.yield()
+                end
+            end
+            entities.delete_by_handle(ent)
+        end
+    end
+    roses = {}
+end
+
+
+
+local roses = menu.list(menu.my_root(), "Rose Manager")
+
+-- Add menu action to spawn roses
+menu.action(roses, "Spawn Roses", {}, "Spawn roses at your location", function()
+    spawnRoses()
+end)
+
+-- Add menu action to remove all spawned roses
+menu.action(roses, "Remove Roses", {}, "Remove all spawned roses", function()
+    removeRoses()
+end)
