@@ -203,6 +203,11 @@ menu.slider(menu.my_root(), "Blip color", {}, "", 1, 85, 5, 1, function(value)
         local blip = blipTable.blip -- Get the actual blip from the table
         HUD.SET_BLIP_COLOUR(blip, value)
     end
+
+    for i, blipTable in pairs(blipData) do
+        blipTable.colorID = value
+        Rewrite()
+    end
 end)
 
 menu.slider(menu.my_root(), "Blip scale", {}, "", 6, 10, 6, 1, function(value)
