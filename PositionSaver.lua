@@ -27,8 +27,6 @@ if auto_updater == true then error("Invalid auto-updater lib. Please delete your
 local auto_update_config = {
     source_url="https://raw.githubusercontent.com/DynastySheep/PositionSaver/main/PositionSaver.lua",
     script_relpath=SCRIPT_RELPATH,
-    switch_to_branch=selected_branch,
-    verify_file_begins_with="--",
 }
 
 auto_updater.run_auto_update(auto_update_config)
