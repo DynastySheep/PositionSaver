@@ -52,7 +52,7 @@ local spriteTypes = {
     270
 }
 
-local blipColor = 3
+local blipColor = 5
 local selectedColor = blipColor
 blipData = blipFile
 
@@ -79,7 +79,7 @@ function Rewrite()
     file:write("return {\n")
     for i, data in ipairs(blipData) do
         if not data.colorID then
-            data.colorID = 3 -- replace defaultColorID with whatever value you want to use as the default
+            data.colorID = 5 -- replace defaultColorID with whatever value you want to use as the default
         end
 
         if not data.spriteType then
@@ -279,7 +279,7 @@ function CreateBlip(x, y, z, name, colorID, spriteType)
         blip = HUD.ADD_BLIP_FOR_COORD(x, y, z)
         HUD.SET_BLIP_SPRITE(blip, 1) -- Set the blip sprite to a standard waypoint
         HUD.SET_BLIP_SCALE(blip, 0.6) -- Set the blip scale to normal size
-        HUD.SET_BLIP_COLOUR(blip, colorID) -- Set the blip color to blue
+        HUD.SET_BLIP_COLOUR(blip, 5) -- Set the blip color to blue
         HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
         HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
 
