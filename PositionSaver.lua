@@ -184,10 +184,10 @@ end)
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
 menu.action(menu.my_root(), "Clear all from minimap", {}, "Clears all the blips together with positions", function()
+    RemoveBlips()
     for i, action in pairs(testActions) do
         menu.delete(action.action)
     end   
-    RemoveBlips()
 end)
 
 menu.divider(menu.my_root(), "Settings")
@@ -201,7 +201,7 @@ menu.action(blipSettings, "Delete All", {}, "WARNING : Deletes all your saved po
     if #blipData > 0 then   
         
         for i, action in pairs(testActions) do
-            menu.delete(action)
+            menu.delete(action.action)
         end   
 
         RemoveBlips()
@@ -267,6 +267,12 @@ function CreateBlip(x, y, z, name, colorID, spriteType)
 
         local exists = false -- Add a flag to check if the name already exists in the savedBlips list
 
+        for i, list in ipairs(testActions) do
+            if list.name == name then
+                exists = true
+                break
+            end
+        end
 
         if not exists then -- Only create menu options if the name does not exist in the savedBlips list
             local testAction = menu.list(savedBlips, name, {})
@@ -341,8 +347,8 @@ function CreateBlip(x, y, z, name, colorID, spriteType)
                 for i, data in ipairs(blipData) do
                     if data.posName == name then
                         table.remove(blipData, i)
-                        table.remove(blipSprite, i)
-                        table.remove(testActions, i)
+                        --table.remove(blipSprite, i)
+                        --table.remove(testActions, i)
                         Rewrite()
                         return
                     end
