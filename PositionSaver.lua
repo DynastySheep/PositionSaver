@@ -168,10 +168,12 @@ function CreateBlip(x, y, z, name)
             data.x = x
             data.y = y
             data.z = z    
-            existingBlip = blipSprite[i]
-            existingBlip.x = x
-            existingBlip.y = y
-            existingBlip.z = z   
+            local existingBlip = blipSprite[i]
+            if existingBlip then -- check if existingBlip is not nil
+                existingBlip.x = x
+                existingBlip.y = y
+                existingBlip.z = z   
+            end
             Rewrite()
             break
         end
