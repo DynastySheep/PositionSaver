@@ -185,6 +185,7 @@ menu.text_input(blipMenu, "Position Name ", {"set_current_position_name"}, "Name
     end
 end, "")
 
+menu.divider(blipMenu, "To be completed")
 menu.slider(blipMenu, "Blip color", {}, "",  1, 85, blipColor, 1, function()
     selectedColor = blipColor
 end)
@@ -195,11 +196,13 @@ end)
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
 menu.action(menu.my_root(), "Clear all from minimap", {}, "Clears all the blips together with positions", function()
-    for i, action in pairs(testActions) do
-        menu.delete(action.action)
-    end   
-
     RemoveBlips()
+
+    if #testActions > 0 then
+        for i, action in pairs(testActions) do
+            menu.delete(action.action)
+        end
+    end
 end)
 
 menu.divider(menu.my_root(), "Settings")
