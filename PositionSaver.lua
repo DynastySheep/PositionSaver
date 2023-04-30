@@ -90,10 +90,6 @@ function RemoveBlips()
     testActions = {}
 end
 
-util.on_pre_stop(function()
-    RemoveBlips()
-end)
-
 local blipMenu = menu.list(menu.my_root(), "Create Blip", {}, "")
 menu.text_input(blipMenu, "Position Name ", {"set_current_position_name"}, "Name your current position", function(name)
     if name ~= nil and name ~= "" then
@@ -269,8 +265,13 @@ function CreateBlip(x, y, z, name)
     Rewrite()
 end
 
+util.on_pre_stop(function()
+    RemoveRoses()
+    RemoveBlips()
+end)
+
 -- Temporary
-function spawnRoses()
+function SpawnRoses()
     local playerPed = PLAYER.PLAYER_PED_ID()
     local playerCoords = ENTITY.GET_ENTITY_COORDS(playerPed, true)
     local rose = OBJECT.CREATE_OBJECT(roseObj, playerCoords.x, playerCoords.y, playerCoords.z, true, true, false)
@@ -278,7 +279,7 @@ function spawnRoses()
 end
 
 -- Remove all spawned roses
-function removeRoses()
+function RemoveRoses()
     for i=1, #roses do
         local ent = roses[i]
         if ENTITY.DOES_ENTITY_EXIST(ent) then
@@ -288,16 +289,14 @@ function removeRoses()
     roses = {}
 end
 
-
-
 local roses = menu.list(menu.my_root(), "Rose Manager")
 
 -- Add menu action to spawn roses
 menu.action(roses, "Spawn Roses", {}, "Spawn roses at your location", function()
-    spawnRoses()
+    SpawnRoses()
 end)
 
 -- Add menu action to remove all spawned roses
 menu.action(roses, "Remove Roses", {}, "Remove all spawned roses", function()
-    removeRoses()
+    RemoveRoses()
 end)
