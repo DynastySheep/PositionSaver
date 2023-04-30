@@ -46,6 +46,14 @@ local blipSprite = {}
 local blipData = {}
 local testActions = {}
 
+local blipTypes = {
+    1,
+    162,
+    270
+}
+
+local blipColor = 3
+local selectedColor = blipColor
 blipData = blipFile
 
 -- functions
@@ -67,10 +75,29 @@ function Rewrite()
         util.toast("Error opening file: " .. err)
         return
     end
-
+    
     file:write("return {\n")
     for i, data in ipairs(blipData) do
-        file:write('  {posName = "' .. data.posName .. '", x = ' .. data.x .. ', y = ' .. data.y .. ', z = ' .. data.z .. '}')
+        if not data.colorID then
+            data.colorID = 3 -- replace defaultColorID with whatever value you want to use as the default
+        end
+
+        if not data.spriteType then
+            data.spriteType = 1
+        end
+
+        if not data.subMenu then
+            data.subMenu = false
+        end
+
+        file:write(
+        '{ posName = "'  .. data.posName ..
+        '", x = ' .. data.x ..
+        ', y = ' .. data.y ..
+        ', z = ' .. data.z ..
+        ', colorID = ' .. tostring(data.colorID) ..
+        ', spriteType = ' .. tostring(data.spriteType) .. 
+        ', subMenu = ' .. data.subMenu ..'}')
         if i < #blipData then
             file:write(",\n")
         end
@@ -79,9 +106,8 @@ function Rewrite()
     file:close()
 end
 
-function RemoveBlips()
-    testActions = {}
 
+function RemoveBlips()
     for i, blip in ipairs(blipSprite) do
         util.remove_blip(blip.blip)
     end
@@ -90,67 +116,92 @@ function RemoveBlips()
     testActions = {}
 end
 
+function ImportSavedBlips()
+    local posCount = 0
+    local blipFileCopy = copyTable(blipFile)
+    local blipDataCopy = copyTable(blipData)
+    local mergedBlipData = {}
+    blipData = {}
+
+    for i, v in ipairs(blipFileCopy) do
+        mergedBlipData[i] = v
+        posCount = posCount + 1
+    end
+
+    for i, v in ipairs(blipDataCopy) do
+        if not v.markedForDeletion then
+            local nameExists = false
+            for j, w in ipairs(mergedBlipData) do
+                if v.posName == w.posName then
+                    mergedBlipData[j] = v
+                    nameExists = true
+                    break
+                end
+            end
+            if not nameExists then
+                mergedBlipData[#mergedBlipData + 1] = v
+            end
+        else
+            -- Remove the deleted blip from the original table
+            for j, w in ipairs(blipData) do
+                if v.posName == w.posName then
+                    table.remove(blipData, j)
+                    break
+                end
+            end
+        end
+    end
+    
+    for _, blipInfo in pairs(mergedBlipData) do
+        if not blipInfo.markedForDeletion then
+            CreateBlip(blipInfo.x, blipInfo.y, blipInfo.z, blipInfo.posName, blipInfo.colorID, blipInfo.spriteType)
+        end
+    end
+
+    if #mergedBlipData > 0 then
+        util.toast("Successfully loaded " .. posCount .. " positions.")
+    end
+end
+
+menu.divider(menu.my_root(), "Main")
 local blipMenu = menu.list(menu.my_root(), "Create Blip", {}, "")
 menu.text_input(blipMenu, "Position Name ", {"set_current_position_name"}, "Name your current position", function(name)
     if name ~= nil and name ~= "" then
         local playerPed = PLAYER.PLAYER_PED_ID()
         local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
 
-        CreateBlip(playerPos.x, playerPos.y, playerPos.z, name)
+        CreateBlip(playerPos.x, playerPos.y, playerPos.z, name, selectedColor)
     end
 end, "")
 
+menu.click_slider(blipMenu, "Blip color", {}, "",  1, 85, blipColor, 1, function()
+    selectedColor = blipColor
+end)
+
+menu.list_select(blipMenu, "Blip color", {}, "",  blipTypes, blipTypes[1], function(value)
+    util.toast(value)
+end)
+
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
-menu.action(menu.my_root(), "Clear all blips", {}, "Clears all the blips together with positions", function()
+menu.action(menu.my_root(), "Clear all from minimap", {}, "Clears all the blips together with positions", function()
     for i, action in pairs(testActions) do
         menu.delete(action.action)
     end   
-    
     RemoveBlips()
 end)
 
-local dataManage = menu.list(menu.my_root(), "Settings", {})
-menu.action(dataManage, "Import Saved", {}, "Loads all the saved positions from pos_data file", function()    
-    local posCount = 0
-    local blipFileCopy = copyTable(blipFile)
-    local blipDataCopy = copyTable(blipData)
-    local mergedBlipData = {}
-    for i, v in ipairs(blipFileCopy) do
-        mergedBlipData[i] = v
-        posCount = posCount + 1
-    end
-    for i, v in ipairs(blipDataCopy) do
-        local nameExists = false
-        for j, w in ipairs(mergedBlipData) do
-            if v.posName == w.posName then
-                -- Update the existing entry
-                mergedBlipData[j] = v
-                nameExists = true
-                break
-            end
-        end
-        if not nameExists then
-            -- Add a new entry
-            mergedBlipData[#mergedBlipData + 1] = v
-        end
-    end
-    
-    blipData = {}
-    for _, blipInfo in pairs(mergedBlipData) do
-        CreateBlip(blipInfo.x, blipInfo.y, blipInfo.z, blipInfo.posName)
-    end
-
-    if #mergedBlipData > 0 then
-        util.toast("Successfully loaded " .. posCount .. " positions.")
-    end
+menu.divider(menu.my_root(), "Settings")
+local blipSettings = menu.list(menu.my_root(), "Blip Settings", {})
+menu.action(blipSettings, "Import Saved", {}, "Loads all the saved positions from pos_data file", function()    
+    ImportSavedBlips()
 end)
 
 
-menu.action(dataManage, "Delete All", {}, "WARNING : Deletes all your saved positions", function()    
+menu.action(blipSettings, "Delete All", {}, "WARNING : Deletes all your saved positions", function()    
     if #blipData > 0 then   
         
         for i, action in pairs(testActions) do
-            menu.delete(action.action)
+            menu.delete(action)
         end   
 
         RemoveBlips()
@@ -161,13 +212,13 @@ menu.action(dataManage, "Delete All", {}, "WARNING : Deletes all your saved posi
     end
 end)
 
-menu.action(dataManage, "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
+menu.action(menu.my_root(), "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
     auto_update_config.check_interval = 0
     util.toast("Checking for updates")
     auto_updater.run_auto_update(auto_update_config)
 end)
 
-function CreateBlip(x, y, z, name)
+function CreateBlip(x, y, z, name, colorID, spriteType)
     local existingBlip = nil
     local blip = nil
 
@@ -175,12 +226,16 @@ function CreateBlip(x, y, z, name)
         if data.posName == name then
             data.x = x
             data.y = y
-            data.z = z    
+            data.z = z
+            data.colorID = colorID
+            data.spriteType = spriteType
             local existingBlip = blipSprite[i]
             if existingBlip then -- check if existingBlip is not nil
                 existingBlip.x = x
                 existingBlip.y = y
-                existingBlip.z = z   
+                existingBlip.z = z
+                existingBlip.colorID = colorID
+                existingBlip.spriteType = spriteType
             end
             Rewrite()
             break
@@ -198,25 +253,20 @@ function CreateBlip(x, y, z, name)
         blip = HUD.ADD_BLIP_FOR_COORD(x, y, z)
         HUD.SET_BLIP_SPRITE(blip, 1) -- Set the blip sprite to a standard waypoint
         HUD.SET_BLIP_SCALE(blip, 1.0) -- Set the blip scale to normal size
-        HUD.SET_BLIP_COLOUR(blip, 3) -- Set the blip color to blue
+        HUD.SET_BLIP_COLOUR(blip, colorID) -- Set the blip color to blue
         HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
         HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
-        
+
         existingBlip.blip = blip -- Assign the blip to the existingBlip table
         existingBlip.x = x
         existingBlip.y = y
         existingBlip.z = z
+
         table.insert(blipSprite, existingBlip) -- Insert the whole existingBlip table
-        table.insert(blipData, {posName = name, x = x, y = y, z = z})
+        table.insert(blipData, {posName = name, x = x, y = y, z = z, colorID = colorID, spriteType = spriteType})
 
         local exists = false -- Add a flag to check if the name already exists in the savedBlips list
 
-        for i, list in ipairs(testActions) do
-            if list.name == name then
-                exists = true
-                break
-            end
-        end
 
         if not exists then -- Only create menu options if the name does not exist in the savedBlips list
             local testAction = menu.list(savedBlips, name, {})
@@ -257,7 +307,19 @@ function CreateBlip(x, y, z, name)
                 Rewrite()
             end)        
 
-            menu.action(testAction, "Remove", {}, "", function()
+            menu.text_input(testAction, "Rename", {"insert_new_blip_name"}, "Insert a new name", function(newName)
+                for i, data in ipairs(blipData) do
+                    if data.posName == name then
+                        data.posName = newName
+                        blipFile = blipData
+                        Rewrite()
+                        break
+                    end
+                end
+                menu.set_menu_name(testAction, newName)
+            end)
+
+            menu.action(testAction, "Clear from minimap", {}, "", function()
                 util.remove_blip(blip)
                 menu.delete(testAction)
             
@@ -265,6 +327,22 @@ function CreateBlip(x, y, z, name)
                     if data.posName == name then
                         table.remove(blipData, i)
                         table.remove(blipSprite, i)
+                        table.remove(testActions, i)
+                        return
+                    end
+                end
+            end)
+
+            menu.divider(menu.my_root(), "")
+            menu.action(testAction, "Delete", {}, "", function()
+                util.remove_blip(blip)
+                menu.delete(testAction)
+            
+                for i, data in ipairs(blipData) do
+                    if data.posName == name then
+                        table.remove(blipData, i)
+                        table.remove(blipSprite, i)
+                        table.remove(testActions, i)
                         Rewrite()
                         return
                     end
@@ -277,6 +355,8 @@ function CreateBlip(x, y, z, name)
 
     Rewrite()
 end
+
+--ImportSavedBlips() -- Start script with blips automatically imported
 
 util.on_pre_stop(function()
     RemoveRoses()
@@ -302,6 +382,7 @@ function RemoveRoses()
     roses = {}
 end
 
+menu.divider(menu.my_root(), "Misc")
 local roses = menu.list(menu.my_root(), "Rose Manager")
 
 -- Add menu action to spawn roses
