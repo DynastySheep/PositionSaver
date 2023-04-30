@@ -94,7 +94,8 @@ util.on_pre_stop(function()
     RemoveBlips()
 end)
 
-menu.text_input(menu.my_root(), "Position Name ", {"set_current_position_name"}, "Name your current position", function(name)
+local blipMenu = menu.list(menu.my_root(), "Create Blip", {}, "")
+menu.text_input(blipMenu, "Position Name ", {"set_current_position_name"}, "Name your current position", function(name)
     if name ~= nil and name ~= "" then
         local playerPed = PLAYER.PLAYER_PED_ID()
         local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
@@ -102,7 +103,6 @@ menu.text_input(menu.my_root(), "Position Name ", {"set_current_position_name"},
         CreateBlip(playerPos.x, playerPos.y, playerPos.z, name)
     end
 end, "")
-
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
 menu.action(menu.my_root(), "Clear all blips", {}, "Clears all the blips together with positions", function()
@@ -137,8 +137,7 @@ menu.action(dataManage, "Import Saved", {}, "Loads all the saved positions from 
     end
 end)
 
-menu.action(dataManage, "Delete All", {}, "WARNING : Deletes all your saved positions", function()
-    
+menu.action(dataManage, "Delete All", {}, "WARNING : Deletes all your saved positions", function()    
     if #blipData > 0 then   
         
         for i, action in pairs(testActions) do
