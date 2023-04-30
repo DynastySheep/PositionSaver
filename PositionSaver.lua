@@ -202,7 +202,7 @@ menu.slider(menu.my_root(), "Blip color", {}, "", 1, 85, 3, 1, function(value)
     end
 end)
 
-menu.slider(menu.my_root(), "Blip scale", {}, "", 6, 10, 10, 1, function(value)
+menu.slider(menu.my_root(), "Blip scale", {}, "", 6, 10, 6, 1, function(value)
     for i, blipTable in pairs(blipSprite) do
         local blip = blipTable.blip -- Get the actual blip from the table
         HUD.SET_BLIP_SCALE(blip, value/10)
@@ -278,7 +278,7 @@ function CreateBlip(x, y, z, name, colorID, spriteType)
     else
         blip = HUD.ADD_BLIP_FOR_COORD(x, y, z)
         HUD.SET_BLIP_SPRITE(blip, 1) -- Set the blip sprite to a standard waypoint
-        HUD.SET_BLIP_SCALE(blip, 1.0) -- Set the blip scale to normal size
+        HUD.SET_BLIP_SCALE(blip, 0.6) -- Set the blip scale to normal size
         HUD.SET_BLIP_COLOUR(blip, colorID) -- Set the blip color to blue
         HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
         HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
@@ -411,4 +411,9 @@ end)
 -- Add menu action to remove all spawned roses
 menu.action(roses, "Remove Roses", {}, "Remove all spawned roses", function()
     RemoveRoses()
+end)
+
+menu.action(menu.my_root(), "Enable Ragdoll", {}, "Make the player go into ragdoll mode", function()
+    local playerPed = PLAYER.PLAYER_PED_ID() -- Get the player ped
+    PED.SET_PED_TO_RAGDOLL(playerPed, 1000, 1000, 1, true, true, false) -- Enable ragdoll mode
 end)
