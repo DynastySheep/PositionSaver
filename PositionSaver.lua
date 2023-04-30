@@ -101,7 +101,7 @@ menu.text_input(menu.my_root(), "Position Name ", {"set_current_position_name"},
 
         --CreateBlip(playerPos.x, playerPos.y, playerPos.z, name)
     end
-end, "Default Name")
+end, "")
 
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
