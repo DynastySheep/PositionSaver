@@ -99,11 +99,9 @@ menu.text_input(menu.my_root(), "Position Name ", {"set_current_position_name"},
         local playerPed = PLAYER.PLAYER_PED_ID()
         local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
 
-        CreateBlip(playerPos.x, playerPos.y, playerPos.z, name)
-
-        name = nil
+        --CreateBlip(playerPos.x, playerPos.y, playerPos.z, name)
     end
-end)
+end, "Default Name")
 
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
@@ -161,19 +159,17 @@ menu.action(dataManage, "Check for Update", {}, "The script will automatically c
     auto_updater.run_auto_update(auto_update_config)
 end)
 
-function CreateBlip(x, y, z, name)
+function CreateBlip(x, y, z, blipName)
     local existingBlip = nil
     local blip = nil
 
     for i, data in ipairs(blipData) do
-        if data.posName == name then
+        if data.posName == blipName then
             data.x = x
             data.y = y
             data.z = z    
             existingBlip = blipSprite[i]
-            existingBlip.x = x
-            existingBlip.y = y
-            existingBlip.z = z   
+            HUD.SET_BLIP_COORDS(existingBlip, x, y, z)
             Rewrite()
             break
         end
@@ -199,19 +195,19 @@ function CreateBlip(x, y, z, name)
         existingBlip.y = y
         existingBlip.z = z
         table.insert(blipSprite, existingBlip) -- Insert the whole existingBlip table
-        table.insert(blipData, {posName = name, x = x, y = y, z = z})
+        table.insert(blipData, {posName = blipName, x = x, y = y, z = z})
 
         local exists = false -- Add a flag to check if the name already exists in the savedBlips list
 
         for i, list in ipairs(testActions) do
-            if list.name == name then
+            if list.name == blipName then
                 exists = true
                 break
             end
         end
 
         if not exists then -- Only create menu options if the name does not exist in the savedBlips list
-            local testAction = menu.list(savedBlips, name, {})
+            local testAction = menu.list(savedBlips, blipName, {})
             
             menu.action(testAction, "Teleport to", {}, "", function()
                 local playerPed = PLAYER.PLAYER_PED_ID()
@@ -236,7 +232,7 @@ function CreateBlip(x, y, z, name)
             
                 -- Find the corresponding entry in the blipData table and update it with the new coordinates
                 for i, data in ipairs(blipData) do
-                    if data.posName == name then
+                    if data.posName == blipName then
                         data.x = coords.x
                         data.y = coords.y
                         data.z = coords.z
@@ -254,7 +250,7 @@ function CreateBlip(x, y, z, name)
                 menu.delete(testAction)
             
                 for i, data in ipairs(blipData) do
-                    if data.posName == name then
+                    if data.posName == blipName then
                         table.remove(blipData, i)
                         table.remove(blipSprite, i)
                         Rewrite()
@@ -263,7 +259,7 @@ function CreateBlip(x, y, z, name)
                 end
             end)
         
-            table.insert(testActions, {name = name, action = testAction}) -- Save the name and corresponding menu options in the testActions table
+            table.insert(testActions, {name = blipName, action = testAction}) -- Save the name and corresponding menu options in the testActions table
         end
     end
 
