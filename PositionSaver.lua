@@ -363,7 +363,7 @@ function CreateBlip(x, y, z, name, colorID, spriteType)
     Rewrite()
 end
 
---ImportSavedBlips() -- Start script with blips automatically imported
+ImportSavedBlips() -- Start script with blips automatically imported
 
 util.on_pre_stop(function()
     RemoveRoses()
