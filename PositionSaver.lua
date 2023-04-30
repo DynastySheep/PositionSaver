@@ -282,12 +282,6 @@ function removeRoses()
     for i=1, #roses do
         local ent = roses[i]
         if ENTITY.DOES_ENTITY_EXIST(ent) then
-            if not NETWORK.NETWORK_HAS_CONTROL_OF_ENTITY(ent) then
-                NETWORK.REQUEST_CONTROL_OF_ENTITY(ent)
-                while not NETWORK.NETWORK_HAS_CONTROL_OF_ENTITY(ent) do 
-                    util.yield()
-                end
-            end
             entities.delete_by_handle(ent)
         end
     end
