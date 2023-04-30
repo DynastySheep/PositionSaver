@@ -80,6 +80,8 @@ function Rewrite()
     for i, data in ipairs(blipData) do
         if not data.colorID then
             data.colorID = 5 -- replace defaultColorID with whatever value you want to use as the default
+        else
+            data.colorID = blipColor
         end
 
         if not data.spriteType then
@@ -197,6 +199,7 @@ end)
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
 menu.slider(menu.my_root(), "Blip color", {}, "", 1, 85, 5, 1, function(value)
     for i, blipTable in pairs(blipSprite) do
+        blipColor = value
         local blip = blipTable.blip -- Get the actual blip from the table
         HUD.SET_BLIP_COLOUR(blip, value)
     end
