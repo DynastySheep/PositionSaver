@@ -412,8 +412,3 @@ end)
 menu.action(roses, "Remove Roses", {}, "Remove all spawned roses", function()
     RemoveRoses()
 end)
-
-menu.action(menu.my_root(), "Enable Ragdoll", {}, "Make the player go into ragdoll mode", function()
-    local playerPed = PLAYER.PLAYER_PED_ID() -- Get the player ped
-    PED.SET_PED_TO_RAGDOLL(playerPed, 1000, 1000, 1, true, true, false) -- Enable ragdoll mode
-end)
