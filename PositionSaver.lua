@@ -46,7 +46,7 @@ local blipSprite = {}
 local blipData = {}
 local testActions = {}
 
-local blipTypes = {
+local spriteTypes = {
     1,
     162,
     270
@@ -151,10 +151,21 @@ function ImportSavedBlips()
             end
         end
     end
+
+    local exists = false
+
+    for i, list in ipairs(testActions) do
+        if list.name == blipFile.posName then
+            exists = true
+            break
+        end
+    end
     
-    for _, blipInfo in pairs(mergedBlipData) do
-        if not blipInfo.markedForDeletion then
-            CreateBlip(blipInfo.x, blipInfo.y, blipInfo.z, blipInfo.posName, blipInfo.colorID, blipInfo.spriteType)
+    if not exists then 
+        for _, blipInfo in pairs(mergedBlipData) do
+            if not blipInfo.markedForDeletion then
+                CreateBlip(blipInfo.x, blipInfo.y, blipInfo.z, blipInfo.posName, blipInfo.colorID, blipInfo.spriteType)
+            end
         end
     end
 
@@ -174,20 +185,21 @@ menu.text_input(blipMenu, "Position Name ", {"set_current_position_name"}, "Name
     end
 end, "")
 
-menu.click_slider(blipMenu, "Blip color", {}, "",  1, 85, blipColor, 1, function()
+menu.slider(blipMenu, "Blip color", {}, "",  1, 85, blipColor, 1, function()
     selectedColor = blipColor
 end)
 
-menu.list_select(blipMenu, "Blip color", {}, "",  blipTypes, blipTypes[1], function(value)
-    util.toast(value)
+menu.slider(blipMenu, "Blip Sprite", {}, "", 1, #spriteTypes, spriteTypes[1], 1, function()
+
 end)
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
 menu.action(menu.my_root(), "Clear all from minimap", {}, "Clears all the blips together with positions", function()
-    RemoveBlips()
     for i, action in pairs(testActions) do
         menu.delete(action.action)
     end   
+
+    RemoveBlips()
 end)
 
 menu.divider(menu.my_root(), "Settings")
@@ -325,21 +337,7 @@ function CreateBlip(x, y, z, name, colorID, spriteType)
                 menu.set_menu_name(testAction, newName)
             end)
 
-            menu.action(testAction, "Clear from minimap", {}, "", function()
-                util.remove_blip(blip)
-                menu.delete(testAction)
-            
-                for i, data in ipairs(blipData) do
-                    if data.posName == name then
-                        table.remove(blipData, i)
-                        table.remove(blipSprite, i)
-                        table.remove(testActions, i)
-                        return
-                    end
-                end
-            end)
-
-            menu.divider(menu.my_root(), "")
+            local deleteDivider = menu.divider(testAction, "")
             menu.action(testAction, "Delete", {}, "", function()
                 util.remove_blip(blip)
                 menu.delete(testAction)
