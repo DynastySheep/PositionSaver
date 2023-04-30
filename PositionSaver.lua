@@ -120,7 +120,19 @@ menu.action(dataManage, "Import Saved", {}, "Loads all the saved positions from 
         posCount = posCount + 1
     end
     for i, v in ipairs(blipDataCopy) do
-        mergedBlipData[#mergedBlipData + 1] = v
+        local nameExists = false
+        for j, w in ipairs(mergedBlipData) do
+            if v.posName == w.posName then
+                -- Update the existing entry
+                mergedBlipData[j] = v
+                nameExists = true
+                break
+            end
+        end
+        if not nameExists then
+            -- Add a new entry
+            mergedBlipData[#mergedBlipData + 1] = v
+        end
     end
     
     blipData = {}
@@ -132,6 +144,7 @@ menu.action(dataManage, "Import Saved", {}, "Loads all the saved positions from 
         util.toast("Successfully loaded " .. posCount .. " positions.")
     end
 end)
+
 
 menu.action(dataManage, "Delete All", {}, "WARNING : Deletes all your saved positions", function()    
     if #blipData > 0 then   
