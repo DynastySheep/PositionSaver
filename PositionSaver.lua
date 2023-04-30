@@ -195,12 +195,26 @@ menu.slider(blipMenu, "Blip Sprite", {}, "", 1, #spriteTypes, spriteTypes[1], 1,
 end)
 
 local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
-menu.slider(menu.my_root(), "Blip color", {}, "", 1, 85, 1, 1, function(value)
+menu.slider(menu.my_root(), "Blip color", {}, "", 1, 85, 3, 1, function(value)
     for i, blipTable in pairs(blipSprite) do
         local blip = blipTable.blip -- Get the actual blip from the table
         HUD.SET_BLIP_COLOUR(blip, value)
     end
 end)
+
+menu.slider(menu.my_root(), "Blip scale", {}, "", 6, 10, 10, 1, function(value)
+    for i, blipTable in pairs(blipSprite) do
+        local blip = blipTable.blip -- Get the actual blip from the table
+        HUD.SET_BLIP_SCALE(blip, value/10)
+    end
+end)
+
+--[[menu.textslider(menu.my_root(), "Blip Sprite", {}, "", spriteTypes, function(value)
+    for i, blipTable in pairs(blipSprite) do
+        local blip = blipTable.blip
+        HUD.SET_BLIP_SPRITE(blip, value)
+    end
+end)]]
 
 menu.divider(menu.my_root(), "Settings")
 local blipSettings = menu.list(menu.my_root(), "Blip Settings", {})
