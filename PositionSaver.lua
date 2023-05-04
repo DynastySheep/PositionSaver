@@ -1,5 +1,8 @@
--- Position Saver
--- Made By Dynasty
+-- StorePosition
+-- By Dynasty
+
+local VERSION = 0.1
+util.require_natives(1627063482)
 
 -- [[Auto Updater from https://github.com/hexarobi/stand-lua-auto-updater
 local status, auto_updater = pcall(require, "auto-updater")
@@ -33,363 +36,308 @@ auto_updater.run_auto_update(auto_update_config)
 
 -- Auto Updater Ends Here!
 
---Temporary
-local roseObj = util.joaat("prop_single_rose")
-local roses = {}
---TTT
+-- Read/Write position_data
+local filename = "position_data.lua"
+local path = filesystem.store_dir() .. filename
 
-util.require_natives(1627063482)
-local blipFile = require("pos_data")
-local scriptPath = filesystem.stand_dir()
+local file = io.open(path, "r")
+local positionsData = {}
+local spriteTable = {}
+local listData = {}
 
-local blipSprite = {}
-local blipData = {}
-local testActions = {}
+local blipBookmarks = {}
+local bookmarksData = {}
+local createdBookmarks = {}
 
-local spriteTypes = {
-    1,
-    162,
-    270
-}
+local defaultSprite = 1
+local defaultColor = 46
+local defaulScale = 7.0
+local defaultBookmark = "default_library"
 
-local blipColor = 5
-local selectedColor = blipColor
-blipData = blipFile
-
--- functions
-function copyTable(t)
-    local copy = {}
-    for key, value in pairs(t or {}) do
-        if type(value) == "table" then
-            copy[key] = copyTable(value)
-        else
-            copy[key] = value
+-- Blip functions
+local function nameExists(name)
+    for _, data in ipairs(positionsData) do
+        if data.name == name then
+            return true
         end
     end
-    return copy
+
+    for _, data in ipairs(bookmarksData) do
+        if data.name == name then
+            return true
+        end
+    end 
+
+    return false
 end
 
-function Rewrite()
-    local file, err = io.open(scriptPath .. "Lua Scripts/lib/pos_data.lua", "w+")
-    if not file then
-        util.toast("Error opening file: " .. err)
-        return
+-- if name already exists, append a number to the end to make it unique
+local function GetUniqueName(name)
+    local newName = name
+    local count = 1
+    while nameExists(newName) do
+        count = count + 1
+        newName = name .. " " .. count
     end
-    
-    file:write("return {\n")
-    for i, data in ipairs(blipData) do
-        if not data.colorID then
-            data.colorID = 5 -- replace defaultColorID with whatever value you want to use as the default
-        else
-            data.colorID = blipColor
-        end
-
-        if not data.spriteType then
-            data.spriteType = 1
-        end
-
-        if not data.subMenu then
-            data.subMenu = false
-        end
-
-        file:write(
-        '{ posName = "'  .. data.posName ..
-        '", x = ' .. data.x ..
-        ', y = ' .. data.y ..
-        ', z = ' .. data.z ..
-        ', colorID = ' .. tostring(data.colorID) ..
-        ', spriteType = ' .. tostring(data.spriteType) .. 
-        ', subMenu = ' .. data.subMenu ..'}')
-        if i < #blipData then
-            file:write(",\n")
-        end
-    end
-    file:write("\n}\n")
-    file:close()
+    return newName
 end
 
+function TeleportToBlip(x, y, z)
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+    local vehicle = PED.GET_VEHICLE_PED_IS_USING(playerPed)
+    local coords = {x = x, y = y, z = z}
 
-function RemoveBlips()
-    for i, blip in ipairs(blipSprite) do
-        util.remove_blip(blip.blip)
-    end
-
-    blipSprite = {}    
-    testActions = {}
-end
-
-function ImportSavedBlips()
-    local posCount = 0
-    local blipFileCopy = copyTable(blipFile)
-    local blipDataCopy = copyTable(blipData)
-    local mergedBlipData = {}
-    blipData = {}
-
-    for i, v in ipairs(blipFileCopy) do
-        mergedBlipData[i] = v
-        posCount = posCount + 1
-    end
-
-    for i, v in ipairs(blipDataCopy) do
-        if not v.markedForDeletion then
-            local nameExists = false
-            for j, w in ipairs(mergedBlipData) do
-                if v.posName == w.posName then
-                    mergedBlipData[j] = v
-                    nameExists = true
-                    break
-                end
-            end
-            if not nameExists then
-                mergedBlipData[#mergedBlipData + 1] = v
-            end
-        else
-            -- Remove the deleted blip from the original table
-            for j, w in ipairs(blipData) do
-                if v.posName == w.posName then
-                    table.remove(blipData, j)
-                    break
-                end
-            end
-        end
-    end
-
-    local exists = false
-
-    for i, list in ipairs(testActions) do
-        if list.name == blipFile.posName then
-            exists = true
-            break
-        end
-    end
-    
-    if not exists then 
-        for _, blipInfo in pairs(mergedBlipData) do
-            if not blipInfo.markedForDeletion then
-                CreateBlip(blipInfo.x, blipInfo.y, blipInfo.z, blipInfo.posName, blipInfo.colorID, blipInfo.spriteType)
-            end
-        end
-    end
-
-    if #mergedBlipData > 0 then
-        util.toast("Successfully loaded " .. posCount .. " positions.")
+    if vehicle ~= 0 then
+        ENTITY.SET_ENTITY_COORDS(vehicle, coords.x, coords.y, coords.z, false, false, false, true)
+    else
+        ENTITY.SET_ENTITY_COORDS(playerPed, coords.x, coords.y, coords.z, false, false, false, true)
     end
 end
 
+function RenameBlip(oldName, newName)
+    if newName ~= nil and newName ~= "" then
+        for i, data in ipairs(positionsData) do
+            if data.name == oldName then
+                data.name = newName
+                WriteToFile()
+                break
+            end
+        end
+    end
+end
+
+function SetSpriteValues(blip, blipColor, blipScale)
+    HUD.SET_BLIP_SPRITE(blip, 1) -- Set the blip sprite to a standard waypoint
+    HUD.SET_BLIP_SCALE(blip, blipScale/10) -- Set the blip scale to normal size
+    HUD.SET_BLIP_COLOUR(blip, blipColor) -- Set the blip color to blue
+    HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
+    HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
+end
+
+function RemoveBlipSprite(blip)
+    util.remove_blip(blip)
+end
+
+function MoveBlipToCurrentPos(storeBlipData, blipSprite)        
+    local playerPed = PLAYER.PLAYER_PED_ID()
+    local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+
+    storeBlipData.x = playerPos.x
+    storeBlipData.y = playerPos.y
+    storeBlipData.z = playerPos.z
+
+    HUD.SET_BLIP_COORDS(blipSprite, storeBlipData.x, storeBlipData.y, storeBlipData.z)
+end
+
+-- Menu components
 menu.divider(menu.my_root(), "Main")
-local blipMenu = menu.list(menu.my_root(), "Create Blip", {}, "")
-menu.text_input(blipMenu, "Position Name ", {"set_current_position_name"}, "Name your current position", function(name)
-    if name ~= nil and name ~= "" then
+
+-- Add blips to the list (For importing and creating)
+local savedBlips = menu.list(menu.my_root(), "Blips Manager", {}, "")
+
+menu.text_input(savedBlips, "Create new blip ", {"create_new_blip"}, "", function(blipName)   
+    if blipName ~= nil and blipName ~= "" then
         local playerPed = PLAYER.PLAYER_PED_ID()
         local playerPos = ENTITY.GET_ENTITY_COORDS(playerPed, true)
+        local x, y, z = playerPos.x, playerPos.y, playerPos.z
 
-        CreateBlip(playerPos.x, playerPos.y, playerPos.z, name, selectedColor)
-    end
-end, "")
-
-menu.divider(blipMenu, "To be completed")
-menu.slider(blipMenu, "Blip color", {}, "",  1, 85, blipColor, 1, function()
-    selectedColor = blipColor
-end)
-
-menu.slider(blipMenu, "Blip Sprite", {}, "", 1, #spriteTypes, spriteTypes[1], 1, function()
-
-end)
-
-local savedBlips = menu.list(menu.my_root(), "Saved positions list", {}, "")
-menu.slider(menu.my_root(), "Blip color", {}, "", 1, 85, 5, 1, function(value)
-    for i, blipTable in pairs(blipSprite) do
-        blipColor = value
-        local blip = blipTable.blip -- Get the actual blip from the table
-        HUD.SET_BLIP_COLOUR(blip, value)
-    end
-
-    for i, blipTable in pairs(blipData) do
-        blipTable.colorID = value
-        Rewrite()
-    end
-end)
-
-menu.slider(menu.my_root(), "Blip scale", {}, "", 6, 10, 6, 1, function(value)
-    for i, blipTable in pairs(blipSprite) do
-        local blip = blipTable.blip -- Get the actual blip from the table
-        HUD.SET_BLIP_SCALE(blip, value/10)
-    end
-end)
-
---[[menu.textslider(menu.my_root(), "Blip Sprite", {}, "", spriteTypes, function(value)
-    for i, blipTable in pairs(blipSprite) do
-        local blip = blipTable.blip
-        HUD.SET_BLIP_SPRITE(blip, value)
-    end
-end)]]
-
-menu.divider(menu.my_root(), "Settings")
-local blipSettings = menu.list(menu.my_root(), "Blip Settings", {})
-menu.action(blipSettings, "Import Saved", {}, "Loads all the saved positions from pos_data file", function()    
-    ImportSavedBlips()
-end)
-
-
-menu.action(blipSettings, "Delete All", {}, "WARNING : Deletes all your saved positions", function()    
-    if #blipData > 0 then   
-        
-        for i, action in pairs(testActions) do
-            menu.delete(action.action)
-        end   
-
-        RemoveBlips()
-        blipData = {}
-        Rewrite()
-
-        util.toast("Removed all positions")
-    end
-end)
-
-menu.action(menu.my_root(), "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
-    auto_update_config.check_interval = 0
-    util.toast("Checking for updates")
-    auto_updater.run_auto_update(auto_update_config)
-end)
-
-function CreateBlip(x, y, z, name, colorID, spriteType)
-    local existingBlip = nil
-    local blip = nil
-
-    for i, data in ipairs(blipData) do
-        if data.posName == name then
-            data.x = x
-            data.y = y
-            data.z = z
-            data.colorID = colorID
-            data.spriteType = spriteType
-            local existingBlip = blipSprite[i]
-            if existingBlip then -- check if existingBlip is not nil
-                existingBlip.x = x
-                existingBlip.y = y
-                existingBlip.z = z
-                existingBlip.colorID = colorID
-                existingBlip.spriteType = spriteType
-            end
-            Rewrite()
-            break
-        end
-    end    
-
-    if existingBlip == nil then
-        existingBlip = {} -- Initialize as empty table
-    end
-
-    if existingBlip.blip ~= nil then -- Check if blip field exists before indexing
-        blip = existingBlip.blip
-        HUD.SET_BLIP_COORDS(blip, x, y, z)
-    else
-        blip = HUD.ADD_BLIP_FOR_COORD(x, y, z)
-        HUD.SET_BLIP_SPRITE(blip, 1) -- Set the blip sprite to a standard waypoint
-        HUD.SET_BLIP_SCALE(blip, 0.6) -- Set the blip scale to normal size
-        HUD.SET_BLIP_COLOUR(blip, 5) -- Set the blip color to blue
-        HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
-        HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
-
-        existingBlip.blip = blip -- Assign the blip to the existingBlip table
-        existingBlip.x = x
-        existingBlip.y = y
-        existingBlip.z = z
-
-        table.insert(blipSprite, existingBlip) -- Insert the whole existingBlip table
-        table.insert(blipData, {posName = name, x = x, y = y, z = z, colorID = colorID, spriteType = spriteType})
-
-        local exists = false -- Add a flag to check if the name already exists in the savedBlips list
-
-        for i, list in ipairs(testActions) do
-            if list.name == name then
-                exists = true
+        for i, data in ipairs(positionsData) do
+            if data.name == blipName then
+                blipName = GetUniqueName(blipName)
                 break
             end
         end
 
-        if not exists then -- Only create menu options if the name does not exist in the savedBlips list
-            local testAction = menu.list(savedBlips, name, {})
-            
-            menu.action(testAction, "Teleport to", {}, "", function()
-                local playerPed = PLAYER.PLAYER_PED_ID()
-                local vehicle = PED.GET_VEHICLE_PED_IS_USING(playerPed)
-                local coords = {x = existingBlip.x, y = existingBlip.y, z = existingBlip.z}
-            
-                if vehicle ~= 0 then
-                    ENTITY.SET_ENTITY_COORDS(vehicle, coords.x, coords.y, coords.z, false, false, false, true)
-                else
-                    ENTITY.SET_ENTITY_COORDS(playerPed, coords.x, coords.y, coords.z, false, false, false, true)
-                end
-            end)
+        -- Store the data
+        local blipdataInfo = {
+            name = blipName, 
+            x = x, 
+            y = y, 
+            z = z,
+            blip = blip,
+            blipColor = defaultColor,
+            blipScale = defaulScale,
+            bookmark = defaultBookmark
+        }
 
-            menu.action(testAction, "Update position to current location", {}, "", function()
-                local playerPed = PLAYER.PLAYER_PED_ID()
-                local vehicle = PED.GET_VEHICLE_PED_IS_USING(playerPed)
-                local coords = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-            
-                existingBlip.x = coords.x
-                existingBlip.y = coords.y
-                existingBlip.z = coords.z
-            
-                -- Find the corresponding entry in the blipData table and update it with the new coordinates
-                for i, data in ipairs(blipData) do
-                    if data.posName == name then
-                        data.x = coords.x
-                        data.y = coords.y
-                        data.z = coords.z
-                        break
-                    end
-                end
-            
-                HUD.SET_BLIP_COORDS(blip, coords.x, coords.y, coords.z)
-            
-                Rewrite()
-            end)        
-
-            menu.text_input(testAction, "Rename", {"insert_new_blip_name"}, "Insert a new name", function(newName)
-                for i, data in ipairs(blipData) do
-                    if data.posName == name then
-                        data.posName = newName
-                        blipFile = blipData
-                        Rewrite()
-                        break
-                    end
-                end
-                menu.set_menu_name(testAction, newName)
-            end)
-
-            local deleteDivider = menu.divider(testAction, "")
-            menu.action(testAction, "Delete", {}, "", function()
-                util.remove_blip(blip)
-                menu.delete(testAction)
-            
-                for i, data in ipairs(blipData) do
-                    if data.posName == name then
-                        table.remove(blipData, i)
-                        --table.remove(blipSprite, i)
-                        --table.remove(testActions, i)
-                        Rewrite()
-                        return
-                    end
-                end
-            end)
-        
-            table.insert(testActions, {name = name, action = testAction}) -- Save the name and corresponding menu options in the testActions table
-        end
+        table.insert(positionsData, blipdataInfo)
+        LoadBlip(blipdataInfo)        
+        WriteToFile() -- Write the updated data back to the file
+        util.toast("Current position saved")
     end
+end, "")
 
-    Rewrite()
+menu.divider(savedBlips, "Saved Blips")
+
+local bookmarkList = menu.list(menu.my_root(), "Bookmarks Manager", {}, "")
+menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
+    if bookmarkName ~= nil and bookmarkName ~= "" then   
+        
+        for i, data in ipairs(bookmarksData) do
+            if data.name == bookmarkName then
+                bookmarkName = GetUniqueName(bookmarkName)
+                break
+            end
+        end
+
+        local bookmarkInfo = {
+            name = bookmarkName
+        }
+
+        LoadBookmark(bookmarkInfo)
+        table.insert(bookmarksData, bookmarkInfo)
+        WriteToFile() -- Write the updated data back to the file
+    end
+end, "")
+
+function LoadBookmark(bookmarkInfo)
+    local newBookmark = menu.list(bookmarkList, bookmarkInfo.name)
+    --UpdateBookmarks(newBookmark, bookmarkInfo)
+
+    menu.divider(newBookmark, "Settings")
+    menu.text_input(newBookmark, "Rename", {"rename_existing_bookmark" ..bookmarkInfo.name}, "", function(newName)
+        --UpdateBookmarkNames(bookmarkInfo.name, newName)
+        bookmarkInfo.name = newName
+        menu.set_menu_name(newBookmark, newName)
+    end)
+
+    menu.action(newBookmark, "Delete", {}, "", function()   
+        --EmptyBlips(newBookmark)        
+        --RemoveBookmarks(newBookmark)
+        menu.delete(newBookmark)
+        for i, data in ipairs(bookmarksData) do
+            if data.name == bookmarkInfo.name then
+                table.remove(bookmarksData, i)
+                table.remove(createdBookmarks, i)
+                WriteToFile()
+                break
+            end
+        end
+    end)
+
+    menu.divider(newBookmark, "Saved Blips")
+
+    table.insert(createdBookmarks, newBookmark)
+
+    menu.on_blur(newBookmark, function()
+        WriteToFile()
+    end)
 end
 
-ImportSavedBlips() -- Start script with blips automatically imported
+menu.divider(bookmarkList, "Bookmarks")
 
-util.on_pre_stop(function()
-    RemoveRoses()
-    RemoveBlips()
+function MoveBlipToBookmark(blip, bookmarkReference)
+    util.toast("Test")
+    for i, bookmark in ipairs(bookmarksData) do
+        menu.list(bookmarkReference, bookmark.name)
+    end
+end
+
+--[[
+-- Blip related
+function EmptyBlips(newBookmark)
+    for i, data in ipairs(positionsData) do
+        if positionsData.bookmark == menu.get_menu_name(newBookmark) then
+            data.bookmark = defaultBookmark
+        end
+    end
+end
+
+function PassBlipData(blipData)
+    for i, data in ipairs(positionsData) do
+        if data.bookmark == blipData.bookmark then
+            util.toast("LELE")
+            CreateBookmarkAction(parentReference, bookmarkMenu, "New Bookmark", data.bookmark)
+        end
+    end
+end
+
+-- Moves selected blip to new bookmark
+function CreateBookmarkAction(parentReference, bookmarkReference, bookmarkName, dataBookmark)
+    menu.action(bookmarkReference, bookmarkName, {}, "", function()
+
+        local detachedParent = menu.detach(parentReference)
+
+        for i, data in ipairs(positionsData) do
+            if data.bookmark == dataBookmark then
+                data.bookmark = bookmarkName
+            end
+        end
+
+        for i, data in ipairs(createdBookmarks) do
+            if menu.get_menu_name(data) == bookmarkName then
+                menu.attach(data, detachedParent)
+            end
+        end
+
+        WriteToFile()
+    end)
+end
+
+function PopulateBookmarks(parentReference, bookmarkMenu)
+    for i, data in ipairs(bookmarksData) do
+        CreateBookmarkAction(parentReference, bookmarkMenu, data.name, "")
+    end
+end
+
+function UpdateBookmarks(parentReference, bookmarkInfo)
+    for i, data in ipairs(blipBookmarks) do
+        local bookmarkTitles = menu.get_children(data)
+
+        for j, title in ipairs(bookmarkTitles) do
+            if menu.get_menu_name(title) ~= bookmarkInfo.name then
+                CreateBookmarkAction(parentReference, data, bookmarkInfo.name, "")
+            end
+        end
+    end
+end
+
+function UpdateBookmarkNames(oldName, newName)
+    local bookmarkTitles = {}
+
+    for i, data in ipairs(blipBookmarks) do
+        bookmarkTitles = menu.get_children(data)
+    end
+
+    for j, title in ipairs(bookmarkTitles) do
+        if menu.get_menu_name(title) == oldName then
+            menu.set_menu_name(title, newName)
+            break
+        end
+    end
+end
+
+function RemoveBookmarks(newBookmark)
+    for i, data in ipairs(blipBookmarks) do
+        local bookmarkTitles = menu.get_children(data)
+
+        for j, title in ipairs(bookmarkTitles) do
+            if menu.get_menu_name(title) == menu.get_menu_name(newBookmark) then
+                table.remove(blipBookmarks, i)
+                menu.delete(title)
+                break
+            end
+        end
+    end
+end
+]]
+-- Blip related
+
+local removeWindow = menu.list(menu.my_root(), "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
+menu.action(removeWindow, "REMOVE", {}, "", function()
+    RemoveSavedBlipsList()
+    RefreshFile()
 end)
 
--- Temporary
+menu.divider(menu.my_root(), "Misc")
+
+-- // Roses
+
+local roseObj = util.joaat("prop_single_rose")
+local roses = {}
+
+-- Spawn roses at player's position
 function SpawnRoses()
     local playerPed = PLAYER.PLAYER_PED_ID()
     local playerCoords = ENTITY.GET_ENTITY_COORDS(playerPed, true)
@@ -408,15 +356,183 @@ function RemoveRoses()
     roses = {}
 end
 
-menu.divider(menu.my_root(), "Misc")
-local roses = menu.list(menu.my_root(), "Rose Manager")
-
 -- Add menu action to spawn roses
-menu.action(roses, "Spawn Roses", {}, "Spawn roses at your location", function()
+menu.action(menu.my_root(), "Spawn Roses", {}, "Spawn roses at your location", function()
     SpawnRoses()
 end)
 
 -- Add menu action to remove all spawned roses
-menu.action(roses, "Remove Roses", {}, "Remove all spawned roses", function()
+menu.action(menu.my_root(), "Remove Roses", {}, "Remove all spawned roses", function()
     RemoveRoses()
 end)
+-- // Roses
+
+
+function LoadBlip(blipdataInfo)
+    local blipSprite = HUD.ADD_BLIP_FOR_COORD(blipdataInfo.x, blipdataInfo.y, blipdataInfo.z)
+
+    if blipdataInfo.bookmark ~= "default_library" then
+
+    else
+        local blipInstance = menu.list(savedBlips, blipdataInfo.name)
+        local teleportAction = menu.action(blipInstance, "Teleport to " ..blipdataInfo.name, {}, "Teleports you to selected blip", function()
+            TeleportToBlip(blipdataInfo.x,blipdataInfo.y,blipdataInfo.z)
+        end)
+
+        menu.divider(blipInstance, "Adjustments")
+        local textAction = menu.text_input(blipInstance, "Blip name ", {"rename_current_blip"..blipdataInfo.name}, "Name your blip", function(newName) 
+            blipdataInfo.name = newName
+            menu.set_menu_name(blipInstance, newName)
+            menu.set_menu_name(teleportAction, "Teleport to " ..newName)
+        end)
+
+        menu.slider(blipInstance, "Blip Color ", {}, "Set color for your blip", 1, 78, blipdataInfo.blipColor, 1, function(value)  
+            HUD.SET_BLIP_COLOUR(blipSprite, value)
+            blipdataInfo.blipColor = value
+        end)
+
+        menu.slider(blipInstance, "Blip Scale ", {}, "Set scale of your blip", 6, 10, 6, 1, function(value)  
+            HUD.SET_BLIP_SCALE(blipSprite, value/10)
+            blipdataInfo.blipScale = value
+        end)   
+
+        --[[menu.slider(blipInstance, "Change Sprite ", {}, "Teleports you to selected blip", 1, 78, 1, 1, function(value)
+            
+        end)]]
+
+        menu.toggle(blipInstance, "Is visible ", {}, "Teleports you to selected blip", function(isChecked)
+            if isChecked then
+                HUD.SET_BLIP_ALPHA(blipSprite, 255)
+            else
+                HUD.SET_BLIP_ALPHA(blipSprite, 0)
+            end
+        end, true)
+
+        menu.divider(blipInstance, "Settings")
+        menu.action(blipInstance, "Move blip to current position", {}, "", function()
+            MoveBlipToCurrentPos(blipdataInfo, blipSprite)
+        end)
+
+        local bookmarkMenu = menu.list(blipInstance, "Move to bookmark", {}, "", function()
+            MoveBlipToBookmark(blipInstance, bookmarkMenu)
+        end)
+
+        menu.action(blipInstance, "Remove ", {}, "Teleports you to selected blip", function()
+            RemoveBlipSprite(blipSprite)
+            RemoveFromList(blipInstance, blipdataInfo.name)
+            menu.delete(blipInstance)
+        end)
+
+        SetSpriteValues(blipSprite, blipdataInfo.blipColor, blipdataInfo.blipScale)
+        table.insert(spriteTable, blipSprite)
+        table.insert(listData, blipInstance)
+        --PopulateBookmarks(blipInstance, bookmarkMenu)
+        menu.on_blur(blipInstance, function()
+            WriteToFile()
+        end)
+    end
+end
+
+-- Removal Functions
+function RemoveSavedBlipsList()
+    if #listData > 0 then
+        for i, data in ipairs(listData) do
+            menu.delete(data)
+        end
+    end
+
+    for i, blip in ipairs(spriteTable) do
+        util.remove_blip(blip)
+    end
+
+    for i, data in ipairs(createdBookmarks) do
+        menu.delete(data)
+    end
+
+    spriteTable = {}
+    listData = {}
+    positionsData = {}
+    blipBookmarks = {}
+    bookmarksData = {}
+    createdBookmarks = {}
+end
+
+function RemoveFromList(blipInstance, name)
+    for i, data in ipairs(positionsData) do
+        if data.name == name then
+            table.remove(positionsData, i)
+            break
+        end
+    end
+
+    for i, instance in ipairs(listData) do
+        if instance == blipInstance then
+            table.remove(listData, i)
+            break
+        end
+    end
+    WriteToFile()
+end
+
+-- Data handling functions
+
+-- Write the positions data to a file
+
+util.on_pre_stop(function()
+    WriteToFile()
+
+    for i, blip in ipairs(spriteTable) do
+        util.remove_blip(blip)
+    end
+
+    spriteTable = {}
+end)
+
+function WriteToFile()
+    file = io.open(path, "w")
+    file:write("dataTable = {\n")
+    for k, v in ipairs(positionsData) do
+        file:write(string.format("{name = \"%s\", x = %f, y = %f, z = %f, blip = %s, blipColor = %d, blipScale = %f, bookmark = \"%s\"},\n",
+            v.name, v.x, v.y, v.z, v.blip, v.blipColor, v.blipScale, v.bookmark))
+    end
+    file:write("}\n")
+    file:write("bookmarkTable = {\n")
+    for k, v in ipairs(bookmarksData) do
+        file:write(string.format("{name = \"%s\"},\n",
+            v.name))
+    end
+    file:write("}")
+    file:close()
+end
+
+-- Clear the file back to default
+function RefreshFile()
+    dataTable = {}
+    file = io.open(path, "w")
+    file:write("dataTable = {}\n")
+    file:write("bookmarkTable = {}")
+    file:close()
+end
+
+-- Read the positions data from the file
+function ReadPositionsData()
+    if file then
+        io.close(file)
+        dofile(path)
+        bookmarksData = bookmarkTable
+        for i, bookmark in ipairs(bookmarksData) do
+            LoadBookmark(bookmark)
+        end
+
+        positionsData = dataTable    
+        for i, data in ipairs(positionsData) do
+            LoadBlip(data)
+        end
+        util.toast("Saved positions have been loaded")
+    else
+        RefreshFile()
+        util.toast("No position_data found, creating new file")
+    end
+end
+
+ReadPositionsData()
