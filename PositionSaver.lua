@@ -342,7 +342,9 @@ function SpawnRoses()
     local playerPed = PLAYER.PLAYER_PED_ID()
     local playerCoords = ENTITY.GET_ENTITY_COORDS(playerPed, true)
     local rose = OBJECT.CREATE_OBJECT(roseObj, playerCoords.x, playerCoords.y, playerCoords.z, true, true, false)
-    table.insert(roses, rose)
+    if #roses <= 100 then
+        table.insert(roses, rose)
+    end
 end
 
 -- Remove all spawned roses
