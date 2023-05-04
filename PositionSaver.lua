@@ -170,7 +170,9 @@ end, "")
 
 menu.divider(savedBlips, "Saved Blips")
 
-local bookmarkList = menu.list(menu.my_root(), "Bookmarks Manager", {}, "")
+
+local bookmarkList = menu.list(menu.my_root(), "Bookmarks Manager", {}, "to be completed..")
+--[[
 menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
         
@@ -190,6 +192,7 @@ menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, ""
         WriteToFile() -- Write the updated data back to the file
     end
 end, "")
+]]
 
 function LoadBookmark(bookmarkInfo)
     local newBookmark = menu.list(bookmarkList, bookmarkInfo.name)
@@ -223,16 +226,18 @@ function LoadBookmark(bookmarkInfo)
     menu.on_blur(newBookmark, function()
         WriteToFile()
     end)
+
 end
 
-menu.divider(bookmarkList, "Bookmarks")
-
+--menu.divider(bookmarkList, "Bookmarks")
+--[[
 function MoveBlipToBookmark(blip, bookmarkReference)
     util.toast("Test")
     for i, bookmark in ipairs(bookmarksData) do
         menu.list(bookmarkReference, bookmark.name)
     end
 end
+]]
 
 --[[
 -- Blip related
@@ -415,9 +420,11 @@ function LoadBlip(blipdataInfo)
             MoveBlipToCurrentPos(blipdataInfo, blipSprite)
         end)
 
+        --[[
         local bookmarkMenu = menu.list(blipInstance, "Move to bookmark", {}, "", function()
             MoveBlipToBookmark(blipInstance, bookmarkMenu)
         end)
+        ]]
 
         menu.action(blipInstance, "Remove ", {}, "Teleports you to selected blip", function()
             RemoveBlipSprite(blipSprite)
