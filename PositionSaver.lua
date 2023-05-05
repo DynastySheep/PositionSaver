@@ -231,17 +231,18 @@ end)
 menu.divider(savedBlips, "Saved Blips")
 
 local settingsWindow = menu.list(menu.my_root(), "Settings")
-local removeWindow = menu.list(settingsWindow, "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
-menu.action(removeWindow, "Are you sure? This will remove all positions", {}, "", function()
-    RemoveSavedBlipsList()
-    RefreshFile()
-end)
 
 -- Manually check for updates with a menu option
 menu.action(settingsWindow, "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
     auto_update_config.check_interval = 0
     util.toast("Checking for updates")
     auto_updater.run_auto_update(auto_update_config)
+end)
+
+local removeWindow = menu.list(settingsWindow, "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
+menu.action(removeWindow, "Are you sure? This will remove all positions", {}, "", function()
+    RemoveSavedBlipsList()
+    RefreshFile()
 end)
 
 menu.text_input(menu.my_root(), "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
