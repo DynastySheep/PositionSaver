@@ -11,6 +11,7 @@ This script lets you create and save positions on your map, allowing you to chan
 - All the positions data is stored in Lua Scripts/store/positions_data.lua 
 
 ## Future updates:
+- Default settings for blip spawning
 - Bookmark settings for changing blips in the given bookmark(changing all blip color/scale/sprite at once)
 - More intuitive UI (need help with moving the Settings menu below everything else)
 - More sprites!
