@@ -44,10 +44,10 @@ local file = io.open(path, "r")
 local positionsData = {}
 local spriteTable = {}
 local listData = {}
-
-local blipBookmarks = {}
 local bookmarksData = {}
+
 local createdBookmarks = {}
+local bookmarksForBlips = {}
 
 local defaultSprite = 1
 local defaultColor = 5
@@ -118,6 +118,28 @@ function RenameBlip(oldName, newName)
     end
 end
 
+
+function ShowExistingBookmarks(blipdataInfo, blipInstance, bookmarkMenu)
+    for i, data in ipairs(createdBookmarks) do
+        local newBookmark = menu.action(bookmarkMenu, menu.get_menu_name(data), {}, "", function()
+            local detachedMenu = menu.detach(blipInstance)
+            detachedMenu = menu.attach(data, detachedMenu)
+            blipdataInfo.bookmark = menu.get_menu_name(data)
+            WriteToFile()
+        end)
+        table.insert(bookmarksForBlips, newBookmark)
+    end
+end
+
+function RefreshExistingBookmarks()
+    if #bookmarksForBlips > 0 then
+        for i, data in ipairs(bookmarksForBlips) do
+            menu.delete(data)
+            bookmarksForBlips[i] = nil
+        end
+    end
+end
+
 function SetSpriteValues(blip, blipColor, blipSprite, blipScale)
     HUD.SET_BLIP_SPRITE(blip, blipSprite) -- Set the blip sprite to a standard waypoint
     HUD.SET_BLIP_COLOUR(blip, blipColor) -- Set the blip color to blue
@@ -180,12 +202,42 @@ menu.text_input(savedBlips, "Create new blip ", {"create_new_blip"}, "", functio
     end
 end, "")
 
+local quickTeleportList = {}
+local teleportList
+teleportList = menu.list(savedBlips, "Quick teleport", {}, "", function()
+    local children = menu.get_children(savedBlips)
+
+    if #children > 0 then
+        for i, v in ipairs(children) do 
+            for j,k in ipairs(positionsData) do
+                if k.name == menu.get_menu_name(v) then           
+                    local tpEntry = menu.action(teleportList, menu.get_menu_name(v), {}, "", function()
+                        TeleportToBlip(k.x, k.y, k.z)
+                    end)
+                    table.insert(quickTeleportList, tpEntry)
+                end
+            end   
+        end 
+    end
+end)
+
+menu.on_focus(teleportList, function()
+    for i,v in ipairs(quickTeleportList) do
+        menu.delete(v)
+        quickTeleportList[i] = nil
+    end
+end)
+
 menu.divider(savedBlips, "Saved Blips")
 
+local settingsWindow = menu.list(menu.my_root(), "Settings")
+local removeWindow = menu.list(settingsWindow, "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
+menu.action(removeWindow, "Are you sure? This will remove all positions", {}, "", function()
+    RemoveSavedBlipsList()
+    RefreshFile()
+end)
 
-local bookmarkList = menu.list(menu.my_root(), "Bookmarks", {}, "to be completed..")
-
-menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
+menu.text_input(menu.my_root(), "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
         
         for i, data in ipairs(bookmarksData) do
@@ -205,20 +257,46 @@ menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, ""
     end
 end, "")
 
-function LoadBookmark(bookmarkInfo)
-    local newBookmark = menu.list(bookmarkList, bookmarkInfo.name)
-    --UpdateBookmarks(newBookmark, bookmarkInfo)
 
-    menu.divider(newBookmark, "Settings")
-    menu.text_input(newBookmark, "Rename", {"rename_existing_bookmark" ..bookmarkInfo.name}, "", function(newName)
-        --UpdateBookmarkNames(bookmarkInfo.name, newName)
-        bookmarkInfo.name = newName
-        menu.set_menu_name(newBookmark, newName)
+function LoadBookmark(bookmarkInfo)
+    local newBookmark = menu.list(menu.my_root(), bookmarkInfo.name)
+    local settingsList = menu.list(newBookmark, "Settings")
+
+    local quickTeleportList = {}
+
+    menu.text_input(settingsList, "Rename", {"rename_existing_bookmark" ..bookmarkInfo.name}, "", function(newName)
+        
+        if newName ~= nil and newName ~= "" then
+            bookmarkInfo.name = newName
+            menu.set_menu_name(newBookmark, newName)
+
+            local children = menu.get_children(newBookmark)
+
+            for i, v in ipairs(children) do     
+                for j,k in ipairs(positionsData) do
+                    if k.name == menu.get_menu_name(v) then                    
+                        k.bookmark = bookmarkInfo.name
+                    end
+                end   
+            end  
+            WriteToFile()
+        end
     end)
 
-    menu.action(newBookmark, "Delete", {}, "", function()   
-        --EmptyBlips(newBookmark)        
-        --RemoveBookmarks(newBookmark)
+    menu.action(settingsList, "Remove bookmark", {}, "", function()  
+
+        local children = menu.get_children(newBookmark)
+
+        for i, v in ipairs(children) do     
+            for j,k in ipairs(positionsData) do
+                if k.name == menu.get_menu_name(v) then                    
+                    local detachedChild = menu.detach(v)
+                    detachedChild = menu.attach(savedBlips, detachedChild)
+                    k.bookmark = defaultBookmark
+                end
+            end   
+        end  
+        
         menu.delete(newBookmark)
         for i, data in ipairs(bookmarksData) do
             if data.name == bookmarkInfo.name then
@@ -230,26 +308,44 @@ function LoadBookmark(bookmarkInfo)
         end
     end)
 
+
+    local teleportList
+    teleportList = menu.list(newBookmark, "Quick teleport", {}, "", function()
+        local children = menu.get_children(newBookmark)
+
+        if #children > 0 then
+            for i, v in ipairs(children) do 
+                for j,k in ipairs(positionsData) do
+                    if k.name == menu.get_menu_name(v) then           
+                        local tpEntry = menu.action(teleportList, menu.get_menu_name(v), {}, "", function()
+                            TeleportToBlip(k.x, k.y, k.z)
+                        end)
+                        table.insert(quickTeleportList, tpEntry)
+                    end
+                end   
+            end 
+        end
+    end)
+
+    menu.on_focus(teleportList, function()
+        for i,v in ipairs(quickTeleportList) do
+            menu.delete(v)
+            quickTeleportList[i] = nil
+        end
+    end)
+
     menu.divider(newBookmark, "Saved Blips")
 
     table.insert(createdBookmarks, newBookmark)
-
+    
     menu.on_blur(newBookmark, function()
         WriteToFile()
     end)
-
 end
 
-menu.divider(bookmarkList, "Bookmarks")
+menu.divider(menu.my_root(), "Bookmarks")
 
-local removeWindow = menu.list(menu.my_root(), "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
-menu.action(removeWindow, "REMOVE", {}, "", function()
-    RemoveSavedBlipsList()
-    RefreshFile()
-end)
-
-menu.divider(menu.my_root(), "Misc")
-
+--[[
 -- // Roses
 
 local roseObj = util.joaat("prop_single_rose")
@@ -286,128 +382,146 @@ menu.action(menu.my_root(), "Remove Roses", {}, "Remove all spawned roses", func
     RemoveRoses()
 end)
 -- // Roses
-
+]]
 
 function LoadBlip(blipdataInfo)
     local blipSprite = HUD.ADD_BLIP_FOR_COORD(blipdataInfo.x, blipdataInfo.y, blipdataInfo.z)
 
+    local blipLocation
+
     if blipdataInfo.bookmark ~= "default_library" then
-
-    else
-        local blipInstance = menu.list(savedBlips, blipdataInfo.name)
-        local teleportAction = menu.action(blipInstance, "Teleport to " ..blipdataInfo.name, {}, "Teleports you to selected blip", function()
-            TeleportToBlip(blipdataInfo.x,blipdataInfo.y,blipdataInfo.z)
-        end)
-
-        menu.divider(blipInstance, "Adjustments")
-        local textAction = menu.text_input(blipInstance, "Blip name ", {"rename_current_blip"..blipdataInfo.name}, "Name your blip", function(newName) 
-            blipdataInfo.name = newName
-            menu.set_menu_name(blipInstance, newName)
-            menu.set_menu_name(teleportAction, "Teleport to " ..newName)
-        end)
-
-        --[[ Blip Colors
-            Colors: 
-            White > Black = 4, 55, 40
-            Red = 41, 1, 76
-            Green = 11, 2, 52
-            Blue = 18, 3, 78
-            Yellow = 36, 5, 28
-            Purple = 58, 83, 7
-            Pink = 19, 8, 41
-            Orange = 64, 47, 9
-            Cyan = 18
-            Navy Blue = 38
-        ]]
-
-        local colors = {
-            value = {
-                4, 55, 40, 41, 1, 76, 11, 2, 52, 18, 3, 78, 36, 5, 28, 7, 83, 58, 41, 8, 19, 9, 47, 64, 18, 38
-            },
-            name = {
-                "White", "Grey", "Black", 
-                "Light red", "Red", "Dark red", 
-                "Light green", "Green", "Dark green",
-                "Light blue", "Blue", "Dark blue",
-                "Light yellow", "Yellow", "Dark yellow",
-                "Light purple", "Purple", "Dark purple",
-                "Light pink", "Pink", "Dark pink",
-                "Light orange", "Orange", "Dark orange",
-                "Cyan", "Navy blue"
-            }   
-        }
-
-        local currentColorIndex = table.find(colors.value, blipdataInfo.blipColor)
-        local chosenColor = blipdataInfo.blipColor or defaultColor
-        
-        menu.list_select(blipInstance, "Blip Color ", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
-            local selectedValue = colors.value[selectedIndex]
-            HUD.SET_BLIP_COLOUR(blipSprite, selectedValue)
-            blipdataInfo.blipColor = selectedValue
-            chosenColor = selectedValue
-        end)
-
-        local sprites = {
-            value = {
-                1, 744, 133, 439
-            },
-            name = {
-                "Destination", "Camera", "Snitch", "Crown"
-            }            
-        }
-        
-        local currentSpriteIndex = table.find(sprites.value, blipdataInfo.blipSprite)
-
-        menu.list_select(blipInstance, "Blip Sprite ", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)  
-            local selectedValue = sprites.value[selectedIndex]
-            HUD.SET_BLIP_SPRITE(blipSprite, selectedValue)
-            HUD.SET_BLIP_COLOUR(blipSprite, chosenColor)
-            blipdataInfo.blipSprite = selectedValue
-        end)
-
-        local currentSpriteScale = blipdataInfo.blipScale
-        menu.slider(blipInstance, "Blip Scale ", {}, "Set scale of your blip", 6, 10, currentSpriteScale or defaulScale, 1, function(value)  
-            HUD.SET_BLIP_SCALE(blipSprite, value/10)
-            blipdataInfo.blipScale = value
-        end)   
-
-        --[[menu.slider(blipInstance, "Change Sprite ", {}, "Teleports you to selected blip", 1, 78, 1, 1, function(value)
-            
-        end)]]
-
-        menu.toggle(blipInstance, "Is visible ", {}, "Teleports you to selected blip", function(isChecked)
-            if isChecked then
-                HUD.SET_BLIP_ALPHA(blipSprite, 255)
-            else
-                HUD.SET_BLIP_ALPHA(blipSprite, 0)
+        for i, data in ipairs(createdBookmarks) do
+            if blipdataInfo.bookmark == menu.get_menu_name(data) then
+                blipLocation = data
             end
-        end, true)
-
-        menu.divider(blipInstance, "Settings")
-        menu.action(blipInstance, "Move blip to current location", {}, "", function()
-            MoveBlipToCurrentPos(blipdataInfo, blipSprite)
-        end)
-
-        --[[
-        local bookmarkMenu = menu.list(blipInstance, "Move to bookmark", {}, "", function()
-            MoveBlipToBookmark(blipInstance, bookmarkMenu)
-        end)
-        ]]
-
-        menu.action(blipInstance, "Remove ", {}, "Teleports you to selected blip", function()
-            RemoveBlipSprite(blipSprite)
-            RemoveFromList(blipInstance, blipdataInfo.name)
-            menu.delete(blipInstance)
-        end)
-
-        SetSpriteValues(blipSprite, blipdataInfo.blipColor, blipdataInfo.blipSprite, blipdataInfo.blipScale)
-        table.insert(spriteTable, blipSprite)
-        table.insert(listData, blipInstance)
-        --PopulateBookmarks(blipInstance, bookmarkMenu)
-        menu.on_blur(blipInstance, function()
-            WriteToFile()
-        end)
+        end
+    else
+        blipLocation = savedBlips
     end
+
+    local blipInstance = menu.list(blipLocation, blipdataInfo.name)
+    local teleportAction = menu.action(blipInstance, "Teleport to " ..blipdataInfo.name, {}, "Teleports you to selected blip", function()
+        TeleportToBlip(blipdataInfo.x,blipdataInfo.y,blipdataInfo.z)
+    end)
+
+    menu.divider(blipInstance, "Adjustments")
+    local textAction = menu.text_input(blipInstance, "Name ", {"rename_current_blip"..blipdataInfo.name}, "Name your blip", function(newName) 
+        blipdataInfo.name = newName
+        menu.set_menu_name(blipInstance, newName)
+        menu.set_menu_name(teleportAction, "Teleport to " ..newName)
+    end, blipdataInfo.name)
+
+    --[[ Blip Colors
+        Colors: 
+        White > Black = 4, 55, 40
+        Red = 41, 1, 76
+        Green = 11, 2, 52
+        Blue = 18, 3, 78
+        Yellow = 36, 5, 28
+        Purple = 58, 83, 7
+        Pink = 19, 8, 41
+        Orange = 64, 47, 9
+        Cyan = 18
+        Navy Blue = 38
+    ]]
+
+    local colors = {
+        value = {
+            4, 55, 40, 41, 1, 76, 11, 2, 52, 18, 3, 78, 36, 5, 28, 7, 83, 58, 41, 8, 19, 9, 47, 64, 18, 38
+        },
+        name = {
+            "White", "Grey", "Black", 
+            "Light red", "Red", "Dark red", 
+            "Light green", "Green", "Dark green",
+            "Light blue", "Blue", "Dark blue",
+            "Light yellow", "Yellow", "Dark yellow",
+            "Light purple", "Purple", "Dark purple",
+            "Light pink", "Pink", "Dark pink",
+            "Light orange", "Orange", "Dark orange",
+            "Cyan", "Navy blue"
+        }   
+    }
+
+    local currentColorIndex = table.find(colors.value, blipdataInfo.blipColor)
+    local chosenColor = blipdataInfo.blipColor or defaultColor
+    
+    menu.list_select(blipInstance, "Color ", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
+        local selectedValue = colors.value[selectedIndex]
+        HUD.SET_BLIP_COLOUR(blipSprite, selectedValue)
+        blipdataInfo.blipColor = selectedValue
+        chosenColor = selectedValue
+    end)
+
+    local sprites = {
+        value = {
+            1, 744, 133, 439
+        },
+        name = {
+            "Destination", "Camera", "Snitch", "Crown"
+        }            
+    }
+    
+    local currentSpriteIndex = table.find(sprites.value, blipdataInfo.blipSprite)
+
+    menu.list_select(blipInstance, "Sprite ", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)  
+        local selectedValue = sprites.value[selectedIndex]
+        HUD.SET_BLIP_SPRITE(blipSprite, selectedValue)
+        HUD.SET_BLIP_COLOUR(blipSprite, chosenColor)
+        blipdataInfo.blipSprite = selectedValue
+    end)
+
+    local currentSpriteScale = blipdataInfo.blipScale
+    menu.slider(blipInstance, "Scale ", {}, "Set scale of your blip", 6, 14, currentSpriteScale or defaulScale, 1, function(value)  
+        HUD.SET_BLIP_SCALE(blipSprite, value/10)
+        blipdataInfo.blipScale = value
+    end)   
+
+    menu.toggle(blipInstance, "Is visible ", {}, "Will you see the blip?", function(isChecked)
+        if isChecked then
+            HUD.SET_BLIP_ALPHA(blipSprite, 255)
+        else
+            HUD.SET_BLIP_ALPHA(blipSprite, 0)
+        end
+    end, true)
+
+    menu.divider(blipInstance, "Settings")
+    menu.action(blipInstance, "Move blip to current location", {}, "", function()
+        MoveBlipToCurrentPos(blipdataInfo, blipSprite)
+    end)
+
+    local bookmarkMenu
+    bookmarkMenu = menu.list(blipInstance, "Move to bookmark", {}, "", function()
+        ShowExistingBookmarks(blipdataInfo, blipInstance, bookmarkMenu)
+    end)
+
+    menu.on_focus(bookmarkMenu, function()
+        RefreshExistingBookmarks()
+    end)
+    
+    menu.action(bookmarkMenu, "Clear bookmark", {}, "", function()
+        local currentParent = menu.get_parent(blipInstance)
+        if currentParent ~= savedBlips then
+            local detachedMenu = menu.detach(blipInstance)
+            detachedMenu = menu.attach(savedBlips, detachedMenu)
+            blipdataInfo.bookmark = defaultBookmark
+            WriteToFile()
+        end
+    end)
+    menu.divider(bookmarkMenu, "")
+
+    menu.action(blipInstance, "Remove ", {}, "Removes current blip", function()
+        RemoveBlipSprite(blipSprite)
+        RemoveFromList(blipInstance, blipdataInfo.name)
+        menu.delete(blipInstance)
+    end)
+
+    SetSpriteValues(blipSprite, blipdataInfo.blipColor, blipdataInfo.blipSprite, blipdataInfo.blipScale)
+    table.insert(spriteTable, blipSprite)
+    table.insert(listData, blipInstance)
+    menu.on_blur(blipInstance, function()
+        WriteToFile()
+    end)
+
 end
 
 -- Removal Functions
@@ -429,7 +543,6 @@ function RemoveSavedBlipsList()
     spriteTable = {}
     listData = {}
     positionsData = {}
-    blipBookmarks = {}
     bookmarksData = {}
     createdBookmarks = {}
 end
