@@ -184,7 +184,7 @@ menu.divider(savedBlips, "Saved Blips")
 
 
 local bookmarkList = menu.list(menu.my_root(), "Bookmarks", {}, "to be completed..")
---[[
+
 menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
         
@@ -204,7 +204,6 @@ menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, ""
         WriteToFile() -- Write the updated data back to the file
     end
 end, "")
-]]
 
 function LoadBookmark(bookmarkInfo)
     local newBookmark = menu.list(bookmarkList, bookmarkInfo.name)
@@ -241,105 +240,7 @@ function LoadBookmark(bookmarkInfo)
 
 end
 
---menu.divider(bookmarkList, "Bookmarks")
---[[
-function MoveBlipToBookmark(blip, bookmarkReference)
-    util.toast("Test")
-    for i, bookmark in ipairs(bookmarksData) do
-        menu.list(bookmarkReference, bookmark.name)
-    end
-end
-]]
-
---[[
--- Blip related
-function EmptyBlips(newBookmark)
-    for i, data in ipairs(positionsData) do
-        if positionsData.bookmark == menu.get_menu_name(newBookmark) then
-            data.bookmark = defaultBookmark
-        end
-    end
-end
-
-function PassBlipData(blipData)
-    for i, data in ipairs(positionsData) do
-        if data.bookmark == blipData.bookmark then
-            util.toast("LELE")
-            CreateBookmarkAction(parentReference, bookmarkMenu, "New Bookmark", data.bookmark)
-        end
-    end
-end
-
--- Moves selected blip to new bookmark
-function CreateBookmarkAction(parentReference, bookmarkReference, bookmarkName, dataBookmark)
-    menu.action(bookmarkReference, bookmarkName, {}, "", function()
-
-        local detachedParent = menu.detach(parentReference)
-
-        for i, data in ipairs(positionsData) do
-            if data.bookmark == dataBookmark then
-                data.bookmark = bookmarkName
-            end
-        end
-
-        for i, data in ipairs(createdBookmarks) do
-            if menu.get_menu_name(data) == bookmarkName then
-                menu.attach(data, detachedParent)
-            end
-        end
-
-        WriteToFile()
-    end)
-end
-
-function PopulateBookmarks(parentReference, bookmarkMenu)
-    for i, data in ipairs(bookmarksData) do
-        CreateBookmarkAction(parentReference, bookmarkMenu, data.name, "")
-    end
-end
-
-function UpdateBookmarks(parentReference, bookmarkInfo)
-    for i, data in ipairs(blipBookmarks) do
-        local bookmarkTitles = menu.get_children(data)
-
-        for j, title in ipairs(bookmarkTitles) do
-            if menu.get_menu_name(title) ~= bookmarkInfo.name then
-                CreateBookmarkAction(parentReference, data, bookmarkInfo.name, "")
-            end
-        end
-    end
-end
-
-function UpdateBookmarkNames(oldName, newName)
-    local bookmarkTitles = {}
-
-    for i, data in ipairs(blipBookmarks) do
-        bookmarkTitles = menu.get_children(data)
-    end
-
-    for j, title in ipairs(bookmarkTitles) do
-        if menu.get_menu_name(title) == oldName then
-            menu.set_menu_name(title, newName)
-            break
-        end
-    end
-end
-
-function RemoveBookmarks(newBookmark)
-    for i, data in ipairs(blipBookmarks) do
-        local bookmarkTitles = menu.get_children(data)
-
-        for j, title in ipairs(bookmarkTitles) do
-            if menu.get_menu_name(title) == menu.get_menu_name(newBookmark) then
-                table.remove(blipBookmarks, i)
-                menu.delete(title)
-                break
-            end
-        end
-    end
-end
-]]
--- Blip related
+menu.divider(bookmarkList, "Bookmarks")
 
 local removeWindow = menu.list(menu.my_root(), "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
 menu.action(removeWindow, "REMOVE", {}, "", function()
