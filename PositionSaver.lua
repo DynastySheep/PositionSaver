@@ -50,9 +50,20 @@ local bookmarksData = {}
 local createdBookmarks = {}
 
 local defaultSprite = 1
-local defaultColor = 46
+local defaultColor = 5
 local defaulScale = 7.0
 local defaultBookmark = "default_library"
+
+
+function table.find(t,v)
+    for i, value in ipairs(t) do
+        if value == v then
+            return i
+        end
+    end
+    return nil
+end
+
 
 -- Blip functions
 local function nameExists(name)
@@ -107,10 +118,10 @@ function RenameBlip(oldName, newName)
     end
 end
 
-function SetSpriteValues(blip, blipColor, blipScale)
-    HUD.SET_BLIP_SPRITE(blip, 1) -- Set the blip sprite to a standard waypoint
-    HUD.SET_BLIP_SCALE(blip, blipScale/10) -- Set the blip scale to normal size
+function SetSpriteValues(blip, blipColor, blipSprite, blipScale)
+    HUD.SET_BLIP_SPRITE(blip, blipSprite) -- Set the blip sprite to a standard waypoint
     HUD.SET_BLIP_COLOUR(blip, blipColor) -- Set the blip color to blue
+    HUD.SET_BLIP_SCALE(blip, blipScale/10) -- Set the blip scale to normal size
     HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
     HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
 end
@@ -157,6 +168,7 @@ menu.text_input(savedBlips, "Create new blip ", {"create_new_blip"}, "", functio
             z = z,
             blip = blip,
             blipColor = defaultColor,
+            blipSprite = defaultSprite,
             blipScale = defaulScale,
             bookmark = defaultBookmark
         }
@@ -393,12 +405,67 @@ function LoadBlip(blipdataInfo)
             menu.set_menu_name(teleportAction, "Teleport to " ..newName)
         end)
 
-        menu.slider(blipInstance, "Blip Color ", {}, "Set color for your blip", 1, 78, blipdataInfo.blipColor, 1, function(value)  
-            HUD.SET_BLIP_COLOUR(blipSprite, value)
-            blipdataInfo.blipColor = value
+        --[[ Blip Colors
+            Colors: 
+            White > Black = 4, 55, 40
+            Red = 41, 1, 76
+            Green = 11, 2, 52
+            Blue = 18, 3, 78
+            Yellow = 36, 5, 28
+            Purple = 58, 83, 7
+            Pink = 19, 8, 41
+            Orange = 64, 47, 9
+            Cyan = 18
+            Navy Blue = 38
+        ]]
+
+        local colors = {
+            value = {
+                4, 55, 40, 41, 1, 76, 11, 2, 52, 18, 3, 78, 36, 5, 28, 7, 83, 58, 41, 8, 19, 9, 47, 64, 18, 38
+            },
+            name = {
+                "White", "Grey", "Black", 
+                "Light red", "Red", "Dark red", 
+                "Light green", "Green", "Dark green",
+                "Light blue", "Blue", "Dark blue",
+                "Light yellow", "Yellow", "Dark yellow",
+                "Light purple", "Purple", "Dark purple",
+                "Light pink", "Pink", "Dark pink",
+                "Light orange", "Orange", "Dark orange",
+                "Cyan", "Navy blue"
+            }   
+        }
+
+        local currentColorIndex = table.find(colors.value, blipdataInfo.blipColor)
+        local chosenColor = blipdataInfo.blipColor or defaultColor
+        
+        menu.list_select(blipInstance, "Blip Color ", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
+            local selectedValue = colors.value[selectedIndex]
+            HUD.SET_BLIP_COLOUR(blipSprite, selectedValue)
+            blipdataInfo.blipColor = selectedValue
+            chosenColor = selectedValue
         end)
 
-        menu.slider(blipInstance, "Blip Scale ", {}, "Set scale of your blip", 6, 10, 6, 1, function(value)  
+        local sprites = {
+            value = {
+                1, 744, 133, 439
+            },
+            name = {
+                "Destination", "Camera", "Snitch", "Crown"
+            }            
+        }
+        
+        local currentSpriteIndex = table.find(sprites.value, blipdataInfo.blipSprite)
+
+        menu.list_select(blipInstance, "Blip Sprite ", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)  
+            local selectedValue = sprites.value[selectedIndex]
+            HUD.SET_BLIP_SPRITE(blipSprite, selectedValue)
+            HUD.SET_BLIP_COLOUR(blipSprite, chosenColor)
+            blipdataInfo.blipSprite = selectedValue
+        end)
+
+        local currentSpriteScale = blipdataInfo.blipScale
+        menu.slider(blipInstance, "Blip Scale ", {}, "Set scale of your blip", 6, 10, currentSpriteScale or defaulScale, 1, function(value)  
             HUD.SET_BLIP_SCALE(blipSprite, value/10)
             blipdataInfo.blipScale = value
         end)   
@@ -432,7 +499,7 @@ function LoadBlip(blipdataInfo)
             menu.delete(blipInstance)
         end)
 
-        SetSpriteValues(blipSprite, blipdataInfo.blipColor, blipdataInfo.blipScale)
+        SetSpriteValues(blipSprite, blipdataInfo.blipColor, blipdataInfo.blipSprite, blipdataInfo.blipScale)
         table.insert(spriteTable, blipSprite)
         table.insert(listData, blipInstance)
         --PopulateBookmarks(blipInstance, bookmarkMenu)
@@ -501,8 +568,8 @@ function WriteToFile()
     file = io.open(path, "w")
     file:write("dataTable = {\n")
     for k, v in ipairs(positionsData) do
-        file:write(string.format("{name = \"%s\", x = %f, y = %f, z = %f, blip = %s, blipColor = %d, blipScale = %f, bookmark = \"%s\"},\n",
-            v.name, v.x, v.y, v.z, v.blip, v.blipColor, v.blipScale, v.bookmark))
+        file:write(string.format("{name = \"%s\", x = %f, y = %f, z = %f, blip = %s, blipColor = %d, blipSprite = %d, blipScale = %f, bookmark = \"%s\"},\n",
+            v.name, v.x, v.y, v.z, v.blip, v.blipColor, v.blipSprite, v.blipScale, v.bookmark))
     end
     file:write("}\n")
     file:write("bookmarkTable = {\n")
