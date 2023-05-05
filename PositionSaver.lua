@@ -134,7 +134,7 @@ end
 menu.divider(menu.my_root(), "Main")
 
 -- Add blips to the list (For importing and creating)
-local savedBlips = menu.list(menu.my_root(), "Blips Manager", {}, "")
+local savedBlips = menu.list(menu.my_root(), "Blips Creator", {}, "")
 
 menu.text_input(savedBlips, "Create new blip ", {"create_new_blip"}, "", function(blipName)   
     if blipName ~= nil and blipName ~= "" then
@@ -171,7 +171,7 @@ end, "")
 menu.divider(savedBlips, "Saved Blips")
 
 
-local bookmarkList = menu.list(menu.my_root(), "Bookmarks Manager", {}, "to be completed..")
+local bookmarkList = menu.list(menu.my_root(), "Bookmarks", {}, "to be completed..")
 --[[
 menu.text_input(bookmarkList, "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
@@ -416,7 +416,7 @@ function LoadBlip(blipdataInfo)
         end, true)
 
         menu.divider(blipInstance, "Settings")
-        menu.action(blipInstance, "Move blip to current position", {}, "", function()
+        menu.action(blipInstance, "Move blip to current location", {}, "", function()
             MoveBlipToCurrentPos(blipdataInfo, blipSprite)
         end)
 
