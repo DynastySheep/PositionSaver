@@ -237,6 +237,13 @@ menu.action(removeWindow, "Are you sure? This will remove all positions", {}, ""
     RefreshFile()
 end)
 
+-- Manually check for updates with a menu option
+menu.action(menu.my_root(), "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
+    auto_update_config.check_interval = 0
+    util.toast("Checking for updates")
+    auto_updater.run_auto_update(auto_update_config)
+end)
+
 menu.text_input(menu.my_root(), "Create new bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
         
