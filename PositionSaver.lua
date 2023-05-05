@@ -351,9 +351,7 @@ function LoadBookmark(bookmarkInfo)
     end)
 end
 
-menu.divider(menu.my_root(), "Bookmarks")
-
---[[
+menu.divider(menu.my_root(), "Misc")
 -- // Roses
 
 local roseObj = util.joaat("prop_single_rose")
@@ -390,7 +388,10 @@ menu.action(menu.my_root(), "Remove Roses", {}, "Remove all spawned roses", func
     RemoveRoses()
 end)
 -- // Roses
-]]
+
+
+menu.divider(menu.my_root(), "Bookmarks")
+
 
 function LoadBlip(blipdataInfo)
     local blipSprite = HUD.ADD_BLIP_FOR_COORD(blipdataInfo.x, blipdataInfo.y, blipdataInfo.z)
