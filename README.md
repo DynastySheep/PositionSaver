@@ -7,13 +7,12 @@ This script lets you create and save positions on your map, allowing you to chan
 ## Useful notes:
 - It doesn't work for interiors
 - You can use quick teleport to quickly scroll between saved positions
-- Bookmarks will help you organise your blips, use them!
-- All the positions data is stored in Lua Scripts/store/positions_data.lua 
+- Includes blip groups to help you organise your blips
+- Can change to different blip sprites, colours, scale for 1 blip and also for groups
+- Default settings for blip spawning
 
 ## Future updates:
-- Default settings for blip spawning
-- Bookmark settings for changing blips in the given bookmark(changing all blip color/scale/sprite at once)
 - More intuitive UI (need help with moving the Settings menu below everything else)
-- More sprites!
+- Probably more sprites if suggested. I tried to limit sprites to the ones that are rarely used in freemode, to avoid blending in with existing ones
 - Add support for interiors (if possible?)
 - Suggestions?
