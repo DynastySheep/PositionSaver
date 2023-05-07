@@ -159,13 +159,15 @@ end
 
 function ShowExistingBookmarks(blipdataInfo, blipInstance, bookmarkMenu)
     for i, data in ipairs(createdBookmarks) do
-        local newBookmark = menu.action(bookmarkMenu, menu.get_menu_name(data), {}, "", function()
-            local detachedMenu = menu.detach(blipInstance)
-            detachedMenu = menu.attach(data, detachedMenu)
-            blipdataInfo.bookmark = menu.get_menu_name(data)
-            WriteToFile()
-        end)
-        table.insert(bookmarksForBlips, newBookmark)
+        if blipdataInfo.bookmark ~= menu.get_menu_name(data) then
+            local newBookmark = menu.action(bookmarkMenu, menu.get_menu_name(data), {}, "", function()
+                local detachedMenu = menu.detach(blipInstance)
+                detachedMenu = menu.attach(data, detachedMenu)
+                blipdataInfo.bookmark = menu.get_menu_name(data)
+                WriteToFile()
+            end)
+            table.insert(bookmarksForBlips, newBookmark)
+        end
     end
 end
 
@@ -203,20 +205,20 @@ end
 
 -- Menu components
 menu.divider(menu.my_root(), "Main")
-local settingsWindow = menu.list(menu.my_root(), "Settings")
+local settingsWindow = menu.list(menu.my_root(), "Settings", {}, "Open settings menu")
+menu.divider(settingsWindow, "General Settings")
+
+local removeWindow = menu.list(settingsWindow, "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
+menu.action(removeWindow, "Are you sure? This will remove ALL blips", {}, "", function()
+    RemoveSavedBlipsList()
+    RefreshFile()
+end)
 
 -- Manually check for updates with a menu option
---[[menu.action(settingsWindow, "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
+menu.action(settingsWindow, "Check for Update", {}, "The script will automatically check for updates at most daily, but you can manually check using this option anytime.", function()
     auto_update_config.check_interval = 0
     util.toast("Checking for updates")
     auto_updater.run_auto_update(auto_update_config)
-end)
-]]
-
-local removeWindow = menu.list(settingsWindow, "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
-menu.action(removeWindow, "Are you sure? This will remove all positions", {}, "", function()
-    RemoveSavedBlipsList()
-    RefreshFile()
 end)
 
 local blipSettingsWindow
@@ -243,7 +245,7 @@ function CreateBlipSettingsMenu()
     currentSpriteIndex = table.find(sprites.value, configInfo.sprite)
     currentSpriteScale = configInfo.scale
 
-    menu.divider(blipSettingsWindow, "Settings")
+    menu.divider(blipSettingsWindow, "Default appearance")
 
     colorSlider = menu.list_select(blipSettingsWindow, "Color", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
         configInfo.color = colors.value[selectedIndex]
@@ -260,7 +262,7 @@ function CreateBlipSettingsMenu()
         isChanged = true
     end)
 
-    menu.divider(blipSettingsWindow, "Other")
+    menu.divider(blipSettingsWindow, "Settings")
 
     menu.action(blipSettingsWindow, "Reset to default ", {}, "", function()  
         configInfo.color = defaultColor
@@ -305,7 +307,6 @@ function CreateBlipSettingsMenu()
     menu.on_focus(blipSettingsWindow, function()
         if isChanged then
             configData[1] = configInfo
-            util.toast("Settings saved")
             WriteToFile()
             isChanged = false
         end
@@ -313,7 +314,7 @@ function CreateBlipSettingsMenu()
     WriteToFile()
 end
 
-menu.text_input(menu.my_root(), "Create bookmark", {"create_new_bookmark"}, "", function(bookmarkName)
+menu.text_input(menu.my_root(), "Create blip group", {"create_blip_group"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
         
         for i, data in ipairs(bookmarksData) do
@@ -334,10 +335,11 @@ menu.text_input(menu.my_root(), "Create bookmark", {"create_new_bookmark"}, "", 
 end, "")
 
 
-local coolDivider = menu.divider(menu.my_root(), "Bookmarks")
+local blipGroups = menu.divider(menu.my_root(), "Blip groups")
 
 function LoadBookmark(bookmarkInfo)
     local newBookmark = menu.list(menu.my_root(), bookmarkInfo.name)
+    local currentBlipGroup = menu.divider(newBookmark, "Blip group - " ..bookmarkInfo.name)
     local quickTeleportList = {}
 
     menu.text_input(newBookmark, "Create new blip ", {"create_new_blip" ..bookmarkInfo.name}, "", function(blipName)   
@@ -398,12 +400,21 @@ function LoadBookmark(bookmarkInfo)
         end
     end)
 
-    local settingsList = menu.list(newBookmark, "Bookmark settings")
-    menu.text_input(settingsList, "Rename", {"rename_existing_bookmark" ..bookmarkInfo.name}, "", function(newName)
-        
+
+    local settingsList = menu.list(newBookmark, "Blip group settings")
+    menu.text_input(settingsList, "Rename blip group", {"rename_blip_group" ..bookmarkInfo.name}, "", function(newName)
         if newName ~= nil and newName ~= "" then
+
+            for i, data in ipairs(bookmarkInfo) do
+                if data.name == newName then
+                    newName = GetUniqueName(newName)
+                    break
+                end
+            end
+
             bookmarkInfo.name = newName
             menu.set_menu_name(newBookmark, newName)
+            menu.set_menu_name(currentBlipGroup, "Blip group - " ..newName)
 
             local children = menu.get_children(newBookmark)
 
@@ -418,44 +429,78 @@ function LoadBookmark(bookmarkInfo)
         end
     end)
 
-    local currentBookmarksList
-    currentBookmarksList = menu.list(settingsList, "Move all blips to new bookmark", {}, "", function()
-        local children = menu.get_children(newBookmark)
-        RefreshExistingBookmarks()
-        for i, data in ipairs(createdBookmarks) do
-            local listBookmark = menu.action(currentBookmarksList, menu.get_menu_name(data), {}, "", function()
-                for i, v in ipairs(children) do     
-                    for j,k in ipairs(positionsData) do
-                        if k.name == menu.get_menu_name(v) then                    
-                            local detachedChild = menu.detach(v)
-                            detachedChild = menu.attach(data, detachedChild)
-                            k.bookmark = menu.get_menu_name(data)
-                        end
-                    end   
-                end    
-            end)
-            table.insert(bookmarksForBlips, listBookmark)
+    menu.divider(settingsList, "Blip group settings")
+    local blipSettingsInBookmark = menu.list(settingsList, "Blip group appearance")
+
+    menu.divider(blipSettingsInBookmark, "Blip group appearance")
+    local currentColorIndex = table.find(colors.value, configData[1].color)
+    local currentColor
+    menu.list_select(blipSettingsInBookmark, "Color", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
+        local blipGroup = menu.get_children(newBookmark)
+        local selectedValue = colors.value[selectedIndex]
+        for i, data in ipairs(blipGroup) do
+            for j,k in ipairs(positionsData) do
+                if k.bookmark == menu.get_menu_name(newBookmark) then
+                    k.blipColor = selectedValue
+                    currentColor = selectedValue
+                    HUD.SET_BLIP_COLOUR(k.blip, selectedValue)
+                end
+            end
         end
     end)
 
-    local currentColorIndex = table.find(colors.value, configData[1].color)
     local currentSpriteIndex = table.find(sprites.value, configData[1].sprite)
+    menu.list_select(blipSettingsInBookmark, "Sprite", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)
+        local selectedValue = sprites.value[selectedIndex]
+        for i, data in ipairs(positionsData) do
+            if data.bookmark == menu.get_menu_name(newBookmark) then
+                data.blipSprite = selectedValue
+                HUD.SET_BLIP_SPRITE(data.blip, selectedValue)
+                HUD.SET_BLIP_COLOUR(data.blip, currentColor)
+            end
+        end
+    end)
+
+
     local currentSpriteScale = configData[1].scale
-
-    menu.list_select(settingsList, "Color", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
-        SetChildrenProperties(newBookmark, color, selectedIndex)
+    menu.slider(blipSettingsInBookmark, "Scale ", {}, "Set scale of your blip", 6, 14, currentSpriteScale or defaulScale, 1, function(value)  
+        local blipGroup = menu.get_children(newBookmark)
+        for i, data in ipairs(blipGroup) do
+            for j,k in ipairs(positionsData) do
+                if k.bookmark == menu.get_menu_name(newBookmark) then
+                    k.blipScale = value
+                    HUD.SET_BLIP_SCALE(k.blip, value/10)
+                end
+            end
+        end
     end)
 
-    menu.list_select(settingsList, "Sprite", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)
-
+    local currentBookmarksList
+    currentBookmarksList = menu.list(settingsList, "Move blips to a new blip group", {}, "", function()
+        local children = menu.get_children(newBookmark)
+        RefreshExistingBookmarks()
+        for i, data in ipairs(createdBookmarks) do
+            if data ~= newBookmark then
+                local listBookmark = menu.action(currentBookmarksList, menu.get_menu_name(data), {}, "", function()
+                    for i, v in ipairs(children) do     
+                        for j,k in ipairs(positionsData) do
+                            if k.name == menu.get_menu_name(v) then                    
+                                local detachedChild = menu.detach(v)
+                                detachedChild = menu.attach(data, detachedChild)
+                                k.bookmark = menu.get_menu_name(data)
+                            end
+                        end
+                    end    
+                    table.insert(bookmarksForBlips, listBookmark)
+                    util.toast("Blips successfully moved to a new blip group : " ..menu.get_menu_name(data))
+                end)
+            end
+        end
     end)
 
-    menu.slider(settingsList, "Scale ", {}, "Set scale of your blip", 6, 14, currentSpriteScale or defaulScale, 1, function(value)  
 
-    end)
-
-
-    menu.action(settingsList, "Remove bookmark", {}, "", function() 
+    menu.divider(settingsList, "Removal")
+    menu.action(settingsList, "Remove this blip group", {}, "WARNING : This also removes blips. Use 'Move blips to new blip group' to preserve removing them", function() 
         local children = menu.get_children(newBookmark)
         for i, v in ipairs(children) do     
             for j,k in ipairs(positionsData) do
@@ -499,8 +544,8 @@ function LoadBlip(blipdataInfo)
         TeleportToBlip(blipdataInfo.x,blipdataInfo.y,blipdataInfo.z)
     end)
 
-    menu.divider(blipInstance, "Adjustments")
-    local textAction = menu.text_input(blipInstance, "Name ", {"rename_current_blip"..blipdataInfo.name}, "Name your blip", function(newName) 
+    menu.divider(blipInstance, "Blip Appearance")
+    local textAction = menu.text_input(blipInstance, "Rename blip ", {"rename_current_blip"..blipdataInfo.name}, "Name your blip", function(newName) 
         blipdataInfo.name = newName
         menu.set_menu_name(blipInstance, newName)
         menu.set_menu_name(teleportAction, "Teleport to " ..newName)
@@ -509,7 +554,7 @@ function LoadBlip(blipdataInfo)
     local currentColorIndex = table.find(colors.value, blipdataInfo.blipColor)
     local chosenColor = blipdataInfo.blipColor or defaultColor
     
-    menu.list_select(blipInstance, "Color ", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
+    menu.list_select(blipInstance, "Blip color ", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
         local selectedValue = colors.value[selectedIndex]
         HUD.SET_BLIP_COLOUR(blipSprite, selectedValue)
         blipdataInfo.blipColor = selectedValue
@@ -517,8 +562,7 @@ function LoadBlip(blipdataInfo)
     end)
     
     local currentSpriteIndex = table.find(sprites.value, blipdataInfo.blipSprite)
-
-    menu.list_select(blipInstance, "Sprite ", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)  
+    menu.list_select(blipInstance, "Blip sprite ", {}, "Set sprite for your blip", sprites.name, currentSpriteIndex or defaultSprite, function(selectedIndex)  
         local selectedValue = sprites.value[selectedIndex]
         HUD.SET_BLIP_SPRITE(blipSprite, selectedValue)
         HUD.SET_BLIP_COLOUR(blipSprite, chosenColor)
@@ -526,7 +570,7 @@ function LoadBlip(blipdataInfo)
     end)
 
     local currentSpriteScale = blipdataInfo.blipScale
-    menu.slider(blipInstance, "Scale ", {}, "Set scale of your blip", 6, 14, currentSpriteScale or defaulScale, 1, function(value)  
+    menu.slider(blipInstance, "Blip scale ", {}, "Set scale of your blip", 6, 14, currentSpriteScale or defaulScale, 1, function(value)  
         HUD.SET_BLIP_SCALE(blipSprite, value/10)
         blipdataInfo.blipScale = value
     end)   
@@ -545,7 +589,7 @@ function LoadBlip(blipdataInfo)
     end)
 
     local bookmarkMenu
-    bookmarkMenu = menu.list(blipInstance, "Move to bookmark", {}, "", function()
+    bookmarkMenu = menu.list(blipInstance, "Move to a different blip group", {}, "", function()
         ShowExistingBookmarks(blipdataInfo, blipInstance, bookmarkMenu)
     end)
 
@@ -566,57 +610,6 @@ function LoadBlip(blipdataInfo)
         WriteToFile()
     end)
 end
-
-function SetChildrenProperties(currentBookmark, value, currentIndex)
-    local blipGroup = menu.get_children(currentBookmark)
-    for i, data in ipairs(blipGroup) do
-        for j,k in ipairs(positionsData) do
-            if k.name == menu.get_menu_name(data) then
-                k.value = currentIndex 
-            end
-        end
-    end
-end
-
---[[
-menu.divider(menu.my_root(), "Misc")
--- // Roses
-
-local roseObj = util.joaat("prop_single_rose")
-local roses = {}
-
--- Spawn roses at player's position
-function SpawnRoses()
-    local playerPed = PLAYER.PLAYER_PED_ID()
-    local playerCoords = ENTITY.GET_ENTITY_COORDS(playerPed, true)
-    local rose = OBJECT.CREATE_OBJECT(roseObj, playerCoords.x, playerCoords.y, playerCoords.z, true, true, false)
-    if #roses <= 100 then
-        table.insert(roses, rose)
-    end
-end
-
--- Remove all spawned roses
-function RemoveRoses()
-    for i=1, #roses do
-        local ent = roses[i]
-        if ENTITY.DOES_ENTITY_EXIST(ent) then
-            entities.delete_by_handle(ent)
-        end
-    end
-    roses = {}
-end
-
--- Add menu action to spawn roses
-menu.action(menu.my_root(), "Spawn Roses", {}, "Spawn roses at your location", function()
-    SpawnRoses()
-end)
-
--- Add menu action to remove all spawned roses
-menu.action(menu.my_root(), "Remove Roses", {}, "Remove all spawned roses", function()
-    RemoveRoses()
-end)
--- // Roses
-]]
 
 -- Removal Functions
 function RemoveSavedBlipsList()
