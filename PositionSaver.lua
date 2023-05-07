@@ -165,6 +165,8 @@ function ShowExistingBookmarks(blipdataInfo, blipInstance, bookmarkMenu)
                 detachedMenu = menu.attach(data, detachedMenu)
                 blipdataInfo.bookmark = menu.get_menu_name(data)
                 WriteToFile()
+
+                util.toast("Successfully moved " ..blipdataInfo.name .. " to a new blip group")
             end)
             table.insert(bookmarksForBlips, newBookmark)
         end
@@ -476,7 +478,7 @@ function LoadBookmark(bookmarkInfo)
     end)
 
     local currentBookmarksList
-    currentBookmarksList = menu.list(settingsList, "Move blips to a new blip group", {}, "", function()
+    currentBookmarksList = menu.list(settingsList, "Move blips to a different blip group", {}, "", function()
         local children = menu.get_children(newBookmark)
         RefreshExistingBookmarks()
         for i, data in ipairs(createdBookmarks) do
@@ -491,16 +493,18 @@ function LoadBookmark(bookmarkInfo)
                             end
                         end
                     end    
-                    table.insert(bookmarksForBlips, listBookmark)
-                    util.toast("Blips successfully moved to a new blip group : " ..menu.get_menu_name(data))
+                    util.toast("Successfully moved blips to a new blip group : " ..menu.get_menu_name(data))
                 end)
+                table.insert(bookmarksForBlips, listBookmark)
             end
         end
     end)
 
+    menu.divider(currentBookmarksList, "Current group - " ..bookmarkInfo.name)
+
 
     menu.divider(settingsList, "Removal")
-    menu.action(settingsList, "Remove this blip group", {}, "WARNING : This also removes blips. Use 'Move blips to new blip group' to preserve removing them", function() 
+    menu.action(settingsList, "Remove this blip group", {}, "WARNING : This also removes blips. Use 'Move blips to a different blip group' to preserve removing them", function() 
         local children = menu.get_children(newBookmark)
         for i, v in ipairs(children) do     
             for j,k in ipairs(positionsData) do
@@ -592,6 +596,7 @@ function LoadBlip(blipdataInfo)
     bookmarkMenu = menu.list(blipInstance, "Move to a different blip group", {}, "", function()
         ShowExistingBookmarks(blipdataInfo, blipInstance, bookmarkMenu)
     end)
+    menu.divider(bookmarkMenu, "Current group - " ..blipdataInfo.bookmark)
 
     menu.on_focus(bookmarkMenu, function()
         RefreshExistingBookmarks()
