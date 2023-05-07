@@ -233,9 +233,9 @@ blipSettingsWindow = menu.list(menu.my_root(), "Blip defaults", {}, "Set up a de
 function CreateBlipSettingsMenu()
     -- Get the current config data
     local configInfo = {
-        color = configData[1].color,
-        sprite = configData[1].sprite,
-        scale = configData[1].scale
+        color = configData.color
+        sprite = configData.sprite
+        scale = configData.scale
     }
 
     local isChanged = false
