@@ -7,10 +7,9 @@ This script lets you create and save positions on your map, allowing you to chan
 ## Useful notes:
 - It doesn't work for interiors
 - You can use quick teleport to quickly scroll between saved positions
-- Blip groups to help you organise your blips
-- Can change to different blip sprites, colours, scale
+- Includes blip groups to help you organise your blips
+- Can change to different blip sprites, colours, scale for 1 blip and also for groups
 - Default settings for blip spawning
-- Can change many blips at once within blip group
 
 ## Future updates:
 - More intuitive UI (need help with moving the Settings menu below everything else)
