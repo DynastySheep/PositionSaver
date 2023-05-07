@@ -53,6 +53,7 @@ local bookmarksForBlips = {}
 local defaultColor = 5
 local defaultSprite = 1
 local defaulScale = 7.000000
+local defaultBookmark = "default_library"
 
 --[[ Blip Colors
     Colors: 
@@ -186,7 +187,7 @@ function SetSpriteValues(blip, blipColor, blipSprite, blipScale)
     HUD.SET_BLIP_SPRITE(blip, blipSprite) -- Set the blip sprite to a standard waypoint
     HUD.SET_BLIP_COLOUR(blip, blipColor) -- Set the blip color to blue
     HUD.SET_BLIP_SCALE(blip, blipScale/10) -- Set the blip scale to normal size
-    HUD.SET_BLIP_AS_SHORT_RANGE(blip, false) -- Set the blip as a long-range blip
+    HUD.SET_BLIP_AS_SHORT_RANGE(blip, true) -- Set the blip as a long-range blip
     HUD.SET_BLIP_DISPLAY(blip, 2) -- Set the blip to show on both the map and minimap
 end
 
@@ -231,10 +232,17 @@ local blipSettingsWindow
 blipSettingsWindow = menu.list(menu.my_root(), "Blip defaults", {}, "Set up a default settings for your blip")
 function CreateBlipSettingsMenu()
     -- Get the current config data
+
+    if #configData == 0 then
+        configData = {
+            {color = defaultColor, sprite = defaultSprite, scale = defaulScale}
+        }
+    end
+
     local configInfo = {
-        color = configData.color
-        sprite = configData.sprite
-        scale = configData.scale
+        color = configData[1].color,
+        sprite = configData[1].sprite,
+        scale = configData[1].scale
     }
 
     local isChanged = false
@@ -746,11 +754,6 @@ function ReadPositionsData()
         end
 
         bookmarksData = bookmarkTable
-        if #bookmarksData == 0 then
-            bookmarksData = {
-                {name = "Default"}
-            }
-        end
 
         for i, bookmark in ipairs(bookmarksData) do
             LoadBookmark(bookmark)
