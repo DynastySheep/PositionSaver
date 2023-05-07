@@ -53,7 +53,6 @@ local bookmarksForBlips = {}
 local defaultColor = 5
 local defaultSprite = 1
 local defaulScale = 7.000000
-local defaultBookmark = "default_library"
 
 --[[ Blip Colors
     Colors: 
