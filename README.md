@@ -1,6 +1,6 @@
 # Position Saver v0.1
 
-This script lets you create and save positions on your map, allowing you to change the color, sprite and scale of the blip. It also has blip group system that will help you organise your blips. I don't really know a good use case for this apart from marking stuff like stunt jumps, collectibles or frequent drug dealer spots perhaps.. or just some cool places that you find.
+This script lets you create and save positions on your map, allowing you to change the color, sprite and scale of the blip. It also has a blip group system that will help you organise your blips. I don't really know a good use case for this apart from marking stuff like stunt jumps, collectibles or frequent drug dealer spots perhaps.. or just some cool places that you find.
 
 ![PositionSaver](https://user-images.githubusercontent.com/129829409/236411921-c63c0ab0-4864-432f-8c8b-941bbbc452b7.png)
 
