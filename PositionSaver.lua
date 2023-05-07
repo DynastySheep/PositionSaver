@@ -88,10 +88,11 @@ local colors = {
 
 local sprites = {
     value = {
-        1, 744, 133, 439
+        1, 270, 744, 133, 439, 304, 354, 489, 484, 570, 682, 781, 788, 652, 161
     },
     name = {
-        "Destination (Circle)", "Camera", "Snitch (Speech bubble)", "Crown"
+        "Circle", "Hollow Circle", "Camera", "Speech Bubble", "Crown", "Star", "Bolt", "Heart", "Ghost",
+        "Badge", "Info", "Present", "Securoserv", "Arrow Sign", "Soundwave"
     }            
 }
 
@@ -207,13 +208,17 @@ end
 
 -- Menu components
 menu.divider(menu.my_root(), "Main")
-local settingsWindow = menu.list(menu.my_root(), "Settings", {}, "Open settings menu")
+local settingsWindow = menu.list(menu.my_root(), "Settings", {}, "General settings")
 menu.divider(settingsWindow, "General Settings")
 
-local removeWindow = menu.list(settingsWindow, "Remove blips data", {}, "WARNING - Removes all data of your saved positions")
+local removeWindow = menu.list(settingsWindow, "Remove blip data", {}, "WARNING - Removes all data of your saved positions")
 menu.action(removeWindow, "Are you sure? This will remove ALL blips", {}, "", function()
     RemoveSavedBlipsList()
     RefreshFile()
+end)
+
+menu.on_blur(removeWindow, function()
+    WriteToFile()
 end)
 
 -- Manually check for updates with a menu option
@@ -224,7 +229,7 @@ menu.action(settingsWindow, "Check for Update", {}, "The script will automatical
 end)
 
 local blipSettingsWindow
-blipSettingsWindow = menu.list(menu.my_root(), "Blip defaults")
+blipSettingsWindow = menu.list(menu.my_root(), "Blip defaults", {}, "Set up a default settings for your blip")
 function CreateBlipSettingsMenu()
     -- Get the current config data
     local configInfo = {
@@ -316,6 +321,26 @@ function CreateBlipSettingsMenu()
     WriteToFile()
 end
 
+local allBlips = {}
+local teleportToAllMenu
+teleportToAllMenu = menu.list(menu.my_root(), "Quick teleport", {}, "Teleport to blip from any group", function()
+
+    if #allBlips > 0 then
+        for i, data in ipairs(allBlips) do
+            menu.delete(data)
+            allBlips[i] = nil
+        end
+    end
+
+    for i, v in ipairs(positionsData) do
+        local newblip = menu.action(teleportToAllMenu, v.bookmark .. " - " .. v.name, {}, "", function()
+            TeleportToBlip(v.x,v.y,v.z)
+        end)
+
+        table.insert(allBlips, newblip)
+    end
+end)
+
 menu.text_input(menu.my_root(), "Create blip group", {"create_blip_group"}, "", function(bookmarkName)
     if bookmarkName ~= nil and bookmarkName ~= "" then   
         
@@ -335,7 +360,6 @@ menu.text_input(menu.my_root(), "Create blip group", {"create_blip_group"}, "", 
         WriteToFile()
     end
 end, "")
-
 
 local blipGroups = menu.divider(menu.my_root(), "Blip groups")
 
@@ -403,7 +427,7 @@ function LoadBookmark(bookmarkInfo)
     end)
 
 
-    local settingsList = menu.list(newBookmark, "Blip group settings")
+    local settingsList = menu.list(newBookmark, "Group settings")
     menu.text_input(settingsList, "Rename blip group", {"rename_blip_group" ..bookmarkInfo.name}, "", function(newName)
         if newName ~= nil and newName ~= "" then
 
@@ -436,6 +460,7 @@ function LoadBookmark(bookmarkInfo)
 
     menu.divider(blipSettingsInBookmark, "Blip group appearance")
     local currentColorIndex = table.find(colors.value, configData[1].color)
+
     local currentColor
     menu.list_select(blipSettingsInBookmark, "Color", {}, "Set color for your blip", colors.name, currentColorIndex or defaultColor, function(selectedIndex)  
         local blipGroup = menu.get_children(newBookmark)
@@ -638,6 +663,12 @@ function RemoveSavedBlipsList()
     bookmarksData = {}
     configData = {}
     createdBookmarks = {}
+
+    if #configData == 0 then
+        configData = {
+            {color = defaultColor, sprite = defaultSprite, scale = defaulScale}
+        }
+    end
 end
 
 function RemoveFromList(blipInstance, name)
